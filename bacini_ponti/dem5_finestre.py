@@ -32,6 +32,7 @@ from rasterio.merge import merge
 from rasterio.transform import from_origin
 from rasterio.warp import reproject, Resampling
 import whitebox_workflows as wb
+from rasterio.features import rasterize
 
 MARGINE_M = 1000.0
 TOPPA_M = 750.0
@@ -39,6 +40,9 @@ CELLA = 5.0
 NODATA = -9999.0
 
 dem5_dir, dem30_p, cont_csv, gpkg, out = sys.argv[1:6]
+# Opzionale: reticolo di riferimento da incidere nel DEM (BRUCIA=percorso shp)
+BRUCIA_M = float(os.environ.get('BRUCIA_M', '5'))
+BRUCIA = gpd.read_file(os.environ['BRUCIA']).to_crs(32633) if os.environ.get('BRUCIA') else None
 os.makedirs(os.path.join(out, 'finestre'), exist_ok=True)
 os.makedirs(os.path.join(out, 'toppe'), exist_ok=True)
 files5 = sorted(glob.glob(os.path.join(dem5_dir, '**', '*.tif'), recursive=True))
@@ -148,6 +152,14 @@ for k, fb in enumerate(finestre):
     p_dem = os.path.join(fdir, f'f{k:03d}_dem_ibrido.tif')
     ids = [i for i, kk in assegna.items() if kk == k]
     z, fonte5, T = dem_ibrido(*fb)
+    if BRUCIA is not None:
+        # stream burning: abbassa di BRUCIA_M le celle attraversate dal
+        # reticolo di riferimento, per vincolare il flusso agli alvei noti
+        sel = BRUCIA.cx[fb[0]:fb[2], fb[1]:fb[3]]
+        if len(sel):
+            m = rasterize(((g, 1) for g in sel.geometry), out_shape=z.shape, transform=T,
+                          all_touched=True, dtype='uint8').astype(bool)
+            z = np.where(m & (z != NODATA), z - BRUCIA_M, z).astype(np.float32)
     scrivi(p_dem, z, T, NODATA, 'float32')
     scrivi(p_fon, fonte5, T, 255, 'uint8')
     del z
