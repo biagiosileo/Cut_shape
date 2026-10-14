@@ -121,11 +121,26 @@ for i in ordine:
         finestre.append(b)
         assegna[i] = len(finestre) - 1
 print(f"{len(B)} ponti, {len(finestre)} finestre", flush=True)
+for k, fb in enumerate(finestre):
+    print(f"  finestra {k}: {(fb[2]-fb[0])/CELLA:.0f} x {(fb[3]-fb[1])/CELLA:.0f} celle, "
+          f"{sum(1 for v in assegna.values() if v == k)} ponti", flush=True)
+# Ripartibile: si elaborano solo le finestre richieste (SOLO_FINESTRA) e non
+# ancora fatte; i metadati delle finestre gia' fatte si conservano.
+p_meta = os.path.join(out, 'finestre.json')
+fatte = {}
+if os.path.exists(p_meta):
+    fatte = {f['k']: f for f in json.load(open(p_meta))['finestre']}
+solo = [int(v) for v in os.environ.get('SOLO_FINESTRA', '').split(',') if v != '']
 
 wbe = wb.WbEnvironment()
 wbe.verbose = False
-meta = {'finestre': [], 'ponti': {}}
+meta = {'finestre': list(fatte.values()), 'ponti': {}}
+for f_ in fatte.values():
+    for i in f_['ponti']:
+        meta['ponti'][int(i)] = f_['k']
 for k, fb in enumerate(finestre):
+    if k in fatte or (solo and k not in solo) or os.environ.get('SOLO_ELENCO'):
+        continue
     t0 = time.time()
     fdir = os.path.join(out, 'finestre')
     p_ptr = os.path.join(fdir, f'f{k:03d}_puntatore.tif')
@@ -145,7 +160,7 @@ for k, fb in enumerate(finestre):
     wbe.write_raster(accr, p_acc)
     del dem, filled, ptr, accr
     with rasterio.open(p_acc) as s:
-        acc = s.read(1)
+        acc = s.read(1).astype(np.float32)
     with rasterio.open(p_ptr) as s:
         ptr_a = s.read(1)
     os.remove(p_acc)
@@ -167,6 +182,8 @@ for k, fb in enumerate(finestre):
     print(f"finestra {k}: {fonte5.shape} celle, {len(ids)} ponti, 5m {fonte5.mean():.2f}, "
           f"{time.time() - t0:.0f}s", flush=True)
     del acc, ptr_a, fonte5
-    with open(os.path.join(out, 'finestre.json'), 'w') as f:
+    meta['finestre'] = sorted(meta['finestre'], key=lambda f_: f_['k'])
+    with open(p_meta, 'w') as f:
         json.dump(meta, f)
+    os.remove(p_dem) if os.environ.get('CANCELLA_DEM') else None
 print("fatto", flush=True)
