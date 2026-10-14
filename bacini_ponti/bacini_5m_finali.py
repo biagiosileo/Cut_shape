@@ -130,23 +130,17 @@ for fin in meta['finestre']:
     p_ptr = os.path.join(run, 'finestre', f'f{k:03d}_puntatore.tif')
     grid = Grid.from_raster(p_ptr)
     fdir = grid.read_raster(p_ptr)
-    ptr = np.asarray(fdir).astype(np.int32)
+    ptr = np.asarray(fdir)
     T = grid.affine
     H, W = ptr.shape
     with rasterio.open(os.path.join(run, 'finestre', f'f{k:03d}_dem_ibrido.tif')) as s:
-        dem = s.read(1).astype(np.float64)
+        dem = s.read(1).astype(np.float32)
         dem[dem == s.nodata] = np.nan
     with rasterio.open(os.path.join(run, 'finestre', f'f{k:03d}_fonte5m.tif')) as s:
         f5 = s.read(1).astype(bool)
-    # pendenza D8 (massima discendente)
-    Zp = np.pad(dem, 1, mode='edge')
-    slope = np.zeros_like(dem)
-    for code, (dr, dc) in OFF.items():
-        nb = Zp[1 + dr:1 + dr + H, 1 + dc:1 + dc + W]
-        slope = np.fmax(slope, np.where((dem - nb) > 0, (dem - nb) / passo(dr, dc), 0))
-    acc = np.asarray(grid.accumulation(fdir, dirmap=DIRMAP_WBT), dtype=np.float64) * C5 * C5 / 1e6
+    acc = np.asarray(grid.accumulation(fdir, dirmap=DIRMAP_WBT), dtype=np.float32) * np.float32(C5 * C5 / 1e6)
     cn = np.zeros((H, W), np.uint8)
-    sel = [f for f, b in cn_idx if b.left < T.c + W * C5 and b.right > T.c and b.bottom < T.f - H * C5 and b.top > T.f]
+    sel = [f for f, b in cn_idx if b.left < T.c + W * C5 and b.right > T.c and b.bottom < T.f and b.top > T.f - H * C5]
     if sel:
         m, _ = merge(sel, bounds=(T.c, T.f - H * C5, T.c + W * C5, T.f), res=C5, nodata=0)
         cn[:] = m[0][:H, :W]
@@ -175,7 +169,17 @@ for fin in meta['finestre']:
         z = dem[rb0:rb1, cb0:cb1][mk]
         zmin, zmax, AE = np.nanmin(z), np.nanmax(z), np.nanmean(z)
         Rl = zmax - zmin
-        S = float(np.nanmean(slope[rb0:rb1, cb0:cb1][mk]))
+        # pendenza D8 (massima discendente) calcolata solo sull'ingombro del bacino
+        zb = dem[max(rb0 - 1, 0):rb1 + 1, max(cb0 - 1, 0):cb1 + 1].astype(np.float64)
+        pr, pc = rb0 - max(rb0 - 1, 0), cb0 - max(cb0 - 1, 0)
+        zp = np.pad(zb, 1, mode='edge')
+        hb, wb_ = zb.shape
+        sl = np.zeros_like(zb)
+        for code, (dr, dc) in OFF.items():
+            nb = zp[1 + dr:1 + dr + hb, 1 + dc:1 + dc + wb_]
+            sl = np.fmax(sl, np.where((zb - nb) > 0, (zb - nb) / passo(dr, dc), 0))
+        S = float(np.nanmean(sl[pr:pr + mk.shape[0], pc:pc + mk.shape[1]][mk]))
+        del zb, zp, sl
         cnv = cn[rb0:rb1, cb0:cb1][mk]
         cnv = cnv[cnv > 0]
         CN = float(cnv.mean()) if cnv.size else np.nan
@@ -231,7 +235,7 @@ for fin in meta['finestre']:
             poli.append({'ID': i, 'A_km2': A, 'Quota_area_DEM5m': frac5, 'geometry': poly})
         sezioni.append({'ID': i, 'A_km2': A, 'geometry': Point(x_out, y_out)})
         print(f"ID {i}: A={A:.3f} km2 L={L:.2f} km 5m={frac5:.2f}", flush=True)
-    del dem, f5, slope, acc, ptr, fdir, grid, cn
+    del dem, f5, acc, ptr, fdir, grid, cn
     pd.DataFrame(righe).to_csv(os.path.join(out, 'parti', f'parametri_f{k:03d}.csv'), index=False)
     gp = os.path.join(out, 'parti', f'bacini_f{k:03d}.gpkg')
     if os.path.exists(gp):
