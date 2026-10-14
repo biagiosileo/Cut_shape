@@ -161,7 +161,7 @@ metodo = pd.DataFrame({'Metodo': [
     'CN medio solo su celle con CN > 0 (CN disponibile solo sul 5 m: vedi "Quota area con CN"); pendenza di tratto '
     'su 500 m centrati sulla sezione.',
     'Le coordinate non sono state corrette: le incongruenze sono segnalate per ID.',
-]})
+] + ([os.environ['NOTA_METODO']] if os.environ.get('NOTA_METODO') else [])})
 xlsx = os.path.join(out, 'Risultati_5m_ibrido.xlsx')
 with pd.ExcelWriter(xlsx, engine='openpyxl') as w:
     ponti.to_excel(w, sheet_name='Ponti', index=False)

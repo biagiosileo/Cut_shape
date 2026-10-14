@@ -128,13 +128,23 @@ P['Scarto DB vs larghezza (dev.std)'] = z_db
 P['Scarto calcolata vs larghezza (dev.std)'] = z_calc
 P['Area corso compatibile con larghezza entro 100 m (km²)'] = A_guid
 P['Coerenza monte-valle'] = pd.Series({k: '; '.join(v) for k, v in note_mv.items()})
+# reticolo di riferimento (opzionale): corso attraversato e coerenza della sezione
+RIF = None
+if os.environ.get('RIF_CSV'):
+    RIF = pd.read_csv(os.environ['RIF_CSV']).set_index('ID')
+    P['Corso di riferimento attraversato'] = RIF.Rif_nome
+    P['Livello corso di riferimento'] = RIF.Rif_livello
+    P['Sezione sul corso di riferimento'] = RIF.Sezione_su_stesso_corso.map(
+        {True: 'sì', False: 'no'}).where(RIF.Rif_nome.notna(), 'nessun corso di riferimento entro 50 m')
 t['Ponti'] = P.reset_index()
 t['Coppie monte-valle'] = C
 t['Origine errore'] = P[P['Probabile origine errore'] != 'Compatibile'].reset_index()[
     ['ID', 'Strada', 'Progressiva', 'Area database (km²)', 'Area calcolata 5 m (km²)', 'Differenza %',
      'Probabile origine errore', 'Larghezza alveo inciso DB (m)', 'Area stimata da larghezza alveo (km²)',
      'Scarto DB vs larghezza (dev.std)', 'Scarto calcolata vs larghezza (dev.std)',
-     'Area corso compatibile con larghezza entro 100 m (km²)', 'Coerenza monte-valle', 'Segnalazioni']]
+     'Area corso compatibile con larghezza entro 100 m (km²)', 'Coerenza monte-valle', 'Segnalazioni']
+    + ([c for c in ('Corso di riferimento attraversato', 'Livello corso di riferimento',
+                    'Sezione sul corso di riferimento') if c in P.columns])]
 t['Metodo'] = pd.concat([t['Metodo'], pd.DataFrame({'Metodo': [
     f'Probabile origine dell\'errore (solo indicativa): coerenza monte-valle tra ponti (sezione di un ponte nel '
     f'bacino di un altro); larghezza dell\'alveo inciso del database con A = {np.exp(aa):.3f}·W^{bb:.2f} '
@@ -157,14 +167,15 @@ with pd.ExcelWriter(xo, engine='openpyxl') as w:
 
 # ---------------- GeoPackage per la verifica manuale ----------------
 nc = P.index[(~ok) & adb.notna()]
+rifcols = [c for c in ('Corso di riferimento attraversato', 'Sezione sul corso di riferimento') if c in P.columns]
 att = P.loc[nc, ['Gruppo', 'Strada', 'Progressiva', 'Nome opera', 'Area database (km²)',
                  'Area calcolata 5 m (km²)', 'Differenza %', 'Esito', 'Probabile origine errore',
                  'Larghezza alveo inciso DB (m)', 'Area stimata da larghezza alveo (km²)',
                  'Area corso compatibile con larghezza entro 100 m (km²)', 'Coerenza monte-valle',
-                 'Segnalazioni']].copy()
+                 'Segnalazioni'] + rifcols].copy()
 att.columns = ['Gruppo', 'Strada', 'Progressiva', 'Nome_opera', 'A_DB_km2', 'A_calc_km2', 'Diff_pct', 'Esito',
                'Origine_errore', 'Larghezza_alveo_m', 'A_da_larghezza_km2', 'A_corso_vicino_km2',
-               'Monte_valle', 'Segnalazioni']
+               'Monte_valle', 'Segnalazioni'] + ['Corso_riferimento', 'Sezione_su_corso_rif'][:len(rifcols)]
 att['Diff_pct'] = att.Diff_pct * 100
 att['Verificato'] = ''
 att['Esito_verifica'] = ''
@@ -194,6 +205,11 @@ strato(cl['kml_abbinato'], 'punto_kml')
 strato(cl['db_inizio'], 'db_inizio')
 strato(cl['db_fine'], 'db_fine')
 strato(cl['db_attraversamento_inizio_fine'], 'db_segmento_inizio_fine')
+if os.environ.get('RIF_SHP'):
+    rs = gpd.read_file(os.environ['RIF_SHP']).to_crs(32633)
+    zona = cl['input_script'].loc[nc].buffer(1500).unary_union
+    rs = rs[rs.intersects(zona)][['nome', 'livello', 'sibapo', 'geometry']]
+    rs.to_file(gp, layer='reticolo_riferimento', driver='GPKG')
 # strato vuoto da compilare: sezione corretta digitalizzata su ortofoto
 vuoto = gpd.GeoDataFrame({'ID': pd.Series([], dtype='int64'), 'Note': pd.Series([], dtype='str')},
                          geometry=gpd.GeoSeries([], crs=32633), crs=32633)
@@ -210,6 +226,7 @@ STILI = {
     'tracciato_kml': ('line', None, '90,90,90,255', '0.9', False),
     'db_segmento_inizio_fine': ('line', None, '192,0,0,255', '0.4', False),
     'bacino_calcolato': ('fill', None, '123,50,148,255', '0.5', False),
+    'reticolo_riferimento': ('line', None, '31,120,180,255', '0.5', False),
 }
 
 

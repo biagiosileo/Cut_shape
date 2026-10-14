@@ -133,7 +133,9 @@ for fin in meta['finestre']:
     ptr = np.asarray(fdir)
     T = grid.affine
     H, W = ptr.shape
-    with rasterio.open(os.path.join(run, 'finestre', f'f{k:03d}_dem_ibrido.tif')) as s:
+    # quote dal DEM non inciso (DEM_RUN) se il puntatore viene da un DEM inciso
+    dem_run = os.environ.get('DEM_RUN', run)
+    with rasterio.open(os.path.join(dem_run, 'finestre', f'f{k:03d}_dem_ibrido.tif')) as s:
         dem = s.read(1).astype(np.float32)
         dem[dem == s.nodata] = np.nan
     with rasterio.open(os.path.join(run, 'finestre', f'f{k:03d}_fonte5m.tif')) as s:
