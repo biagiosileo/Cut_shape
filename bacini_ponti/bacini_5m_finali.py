@@ -102,9 +102,28 @@ def poligono(mask, T):
     return big
 
 
-righe, poli, sezioni = [], [], []
+# Una finestra per processo (SOLO_FINESTRA) per contenere la memoria; i
+# risultati per finestra si uniscono con UNISCI=1.
+solo = [int(v) for v in os.environ.get('SOLO_FINESTRA', '').split(',') if v != '']
+if os.environ.get('UNISCI'):
+    parti = sorted(glob.glob(os.path.join(out, 'parti', 'parametri_f*.csv')))
+    pd.concat([pd.read_csv(f) for f in parti]).sort_values('ID').to_csv(
+        os.path.join(out, 'bacini_5m_parametri.csv'), index=False)
+    gp = os.path.join(out, 'bacini_5m.gpkg')
+    if os.path.exists(gp):
+        os.remove(gp)
+    for lay in ('bacini', 'sezioni_chiusura'):
+        g = pd.concat([gpd.read_file(f, layer=lay) for f in
+                       sorted(glob.glob(os.path.join(out, 'parti', 'bacini_f*.gpkg')))])
+        gpd.GeoDataFrame(g, crs=32633).sort_values('ID').to_file(gp, layer=lay, driver='GPKG')
+    print('uniti', len(parti))
+    sys.exit()
+os.makedirs(os.path.join(out, 'parti'), exist_ok=True)
 for fin in meta['finestre']:
     k = fin['k']
+    if solo and k not in solo:
+        continue
+    righe, poli, sezioni = [], [], []
     ids = [i for i in fin['ponti'] if i in agg.index]
     if not ids:
         continue
@@ -213,11 +232,10 @@ for fin in meta['finestre']:
         sezioni.append({'ID': i, 'A_km2': A, 'geometry': Point(x_out, y_out)})
         print(f"ID {i}: A={A:.3f} km2 L={L:.2f} km 5m={frac5:.2f}", flush=True)
     del dem, f5, slope, acc, ptr, fdir, grid, cn
-
-pd.DataFrame(righe).sort_values('ID').to_csv(os.path.join(out, 'bacini_5m_parametri.csv'), index=False)
-gp = os.path.join(out, 'bacini_5m.gpkg')
-if os.path.exists(gp):
-    os.remove(gp)
-gpd.GeoDataFrame(poli, crs=32633).to_file(gp, layer='bacini', driver='GPKG')
-gpd.GeoDataFrame(sezioni, crs=32633).to_file(gp, layer='sezioni_chiusura', driver='GPKG')
-print('fatto', len(righe))
+    pd.DataFrame(righe).to_csv(os.path.join(out, 'parti', f'parametri_f{k:03d}.csv'), index=False)
+    gp = os.path.join(out, 'parti', f'bacini_f{k:03d}.gpkg')
+    if os.path.exists(gp):
+        os.remove(gp)
+    gpd.GeoDataFrame(poli, crs=32633).to_file(gp, layer='bacini', driver='GPKG')
+    gpd.GeoDataFrame(sezioni, crs=32633).to_file(gp, layer='sezioni_chiusura', driver='GPKG')
+    print('finestra', k, 'fatta', len(righe), flush=True)
