@@ -41,8 +41,15 @@ TOLLERANZA = 0.15
 # 0,0125 km2 -> 14 celle da 30 m.
 AREA_SOGLIA_KM2 = 0.0125
 
-# Regola principale scelta a priori (non tarata sul database): cella con
-# accumulo massimo entro questo raggio dal punto del ponte.
+# Regola principale: cella di reticolo piu' vicina al ponte (come lo script
+# originale) ma con un reticolo meno fitto, cioe' con soglia di area
+# AREA_SOGLIA_PRINCIPALE_KM2. La soglia 0,25 km2 e' stata scelta con una
+# validazione incrociata (scelta su meta' dei ponti, verifica sull'altra meta',
+# 200 ripetizioni: 66,6% di compatibili in media; vedi prove/).
+AREA_SOGLIA_PRINCIPALE_KM2 = 0.25
+# Soglie per l'analisi di sensibilita' (regola della cella piu' vicina).
+SOGLIE_SENSIBILITA_KM2 = (0.0125, 0.05, 0.1, 0.25, 0.5, 1.0)
+# Regola alternativa usata nella prima versione: accumulo massimo entro 60 m.
 RAGGIO_PRINCIPALE_M = 60.0
 # Raggi per l'analisi di sensibilita'.
 RAGGI_SENSIBILITA_M = (30.0, 60.0, 90.0, 150.0, 300.0)
@@ -98,9 +105,10 @@ def centro(r, c):
     return x, y
 
 
-def candidati(x, y, raggio):
-    """Celle di reticolo (acc >= soglia) il cui centro dista <= raggio dal
-    punto: (righe, colonne, distanze)."""
+def candidati(x, y, raggio, soglia=None):
+    """Celle di reticolo (acc >= soglia, in celle; default soglia_celle) il cui
+    centro dista <= raggio dal punto: (righe, colonne, distanze)."""
+    soglia = soglia_celle if soglia is None else soglia
     r0, c0 = cella(x, y)
     n = int(np.ceil(raggio / min(cs_x, cs_y))) + 1
     rs = np.arange(max(r0 - n, 0), min(r0 + n + 1, nr))
@@ -108,16 +116,18 @@ def candidati(x, y, raggio):
     R, C = np.meshgrid(rs, cs, indexing='ij')
     X, Y = grid.affine * (C + 0.5, R + 0.5)
     d = np.hypot(X - x, Y - y)
-    m = (d <= raggio) & (acc_a[R, C] >= soglia_celle) & valid[R, C]
+    m = (d <= raggio) & (acc_a[R, C] >= soglia) & valid[R, C]
     return R[m], C[m], d[m]
 
 
-def vicino_senza_limite(x, y):
-    """Regola dello script originale: cella di reticolo piu' vicina, senza
-    limite di distanza (si allarga la ricerca finche' se ne trova una)."""
+def vicino_senza_limite(x, y, soglia_km2=AREA_SOGLIA_KM2):
+    """Regola dello script originale: cella di reticolo (area >= soglia_km2)
+    piu' vicina, senza limite di distanza (si allarga la ricerca finche' se ne
+    trova una)."""
+    soglia = int(np.ceil(soglia_km2 / cell_km2))
     raggio = 100.0
     while raggio < 50000:
-        R, C, d = candidati(x, y, raggio)
+        R, C, d = candidati(x, y, raggio, soglia)
         if len(d):
             i = int(np.argmin(d))
             return int(R[i]), int(C[i]), float(d[i])
@@ -247,14 +257,17 @@ for _, p in df.sort_values('ID').iterrows():
         rc = max_acc(x, y, R)
         o[f'A30_maxacc_{int(R)}m_km2'] = area(rc)
         o[f'Snap30_maxacc_{int(R)}m_m'] = rc[2] if rc else np.nan
+    for sk in SOGLIE_SENSIBILITA_KM2:
+        rc = vicino_senza_limite(x, y, sk)
+        o[f'A30_vicino_soglia_{sk:g}_km2'] = area(rc)
+    rc_ma = max_acc(x, y, RAGGIO_PRINCIPALE_M)
+    o['A30_maxacc60_o_vicino_km2'] = area(rc_ma if rc_ma is not None else rc_or)
     rc_g = guidata(x, y, RAGGIO_GUIDATA_M, a_db)
     o['A30_guidata_300m_km2'] = area(rc_g)
     o['Snap30_guidata_300m_m'] = rc_g[2] if rc_g else np.nan
 
-    rc = max_acc(x, y, RAGGIO_PRINCIPALE_M)
-    regola = f'maxacc_{int(RAGGIO_PRINCIPALE_M)}m'
-    if rc is None:
-        rc, regola = rc_or, 'vicino (nessuna cella di reticolo entro il raggio)'
+    rc = vicino_senza_limite(x, y, AREA_SOGLIA_PRINCIPALE_KM2)
+    regola = f'cella piu vicina con area >= {AREA_SOGLIA_PRINCIPALE_KM2:g} km2'
     if rc is None:
         o['Stato'] = 'snap non riuscito'
         righe.append(o)
@@ -274,6 +287,7 @@ for _, p in df.sort_values('ID').iterrows():
     o['Asta_dist_area_DB_m'] = d_asta
     o['Asta_area_piu_vicina_km2'] = a_asta
     o['Stato'] = 'elaborato'
+    o['Diff30_km2'] = o['A30_km2'] - a_db
     for col, a in (('Err_5m_originale', o['A_5m_originale_km2']), ('Err30_vicino', o['A30_vicino_km2']),
                    ('Err30', o['A30_km2']), ('Err30_guidata', o['A30_guidata_300m_km2'])):
         e, ok = esito(a, a_db)
@@ -282,5 +296,6 @@ for _, p in df.sort_values('ID').iterrows():
     righe.append(o)
     print(f"Ponte {pid}: A_db={a_db} A30={o['A30_km2']:.3f} km2 troncato={flag}")
 
-pd.DataFrame(righe).to_csv(os.path.join(out_dir, 'aree_dem30_v2.csv'), index=False)
-print("Salvato", os.path.join(out_dir, 'aree_dem30_v2.csv'))
+nome = f'aree_dem30_soglia_{AREA_SOGLIA_PRINCIPALE_KM2:g}.csv'
+pd.DataFrame(righe).to_csv(os.path.join(out_dir, nome), index=False)
+print("Salvato", os.path.join(out_dir, nome))
