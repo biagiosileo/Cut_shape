@@ -3,7 +3,7 @@ Excel del controllo coordinate (una riga per ID 1-212) con l'effetto del punto
 di aggancio sull'area (punto medio DB = input attuale, oppure punto KML).
 
 Uso: python excel_coordinate.py <controllo_coordinate.csv> <controllo_coordinate.gpkg>
-                               <punto_aggancio.csv> <out.xlsx>
+                               <intersezione_tracciati.csv> <out.xlsx>
 """
 import sys
 
@@ -21,11 +21,15 @@ t['Dist_KML_DB_inizio_m'] = [kml.geometry[i].distance(ini.geometry[i]) if i in k
                              else np.nan for i in t.ID]
 t['Dist_KML_DB_fine_m'] = [kml.geometry[i].distance(fin.geometry[i]) if i in kml.index and i in fin.index
                            else np.nan for i in t.ID]
-a = pd.read_csv(agg)[['ID', 'A_medio', 'A_kml']]
+a = pd.read_csv(agg)[['ID', 'A_input_km2', 'A_KML_km2', 'A_intersezione_km2', 'Intersezione',
+                      'Dist_tracciato_reticolo_m', 'N_corsi_intersecati', 'Aree_intersecate_km2',
+                      'Dist_intersezione_input_m']]
+a = a.rename(columns={'A_input_km2': 'A_medio', 'A_KML_km2': 'A_kml'})
 t = t.merge(a, on='ID', how='left')
 ok = lambda c: np.where(t.A_db_km2.notna(), (t[c] / t.A_db_km2 - 1).abs() <= TOL, None)
 t['OK_punto_medio'] = ok('A_medio')
 t['OK_punto_KML'] = ok('A_kml')
+t['OK_intersezione'] = ok('A_intersezione_km2')
 
 note = {
     90: 'Coordinata finale DB a 20 km dall\'iniziale (latitudine 40,2459 invece di ~40,4289?): errore di battitura.',
@@ -48,6 +52,10 @@ cols = {
     'Dist_input_KML_m': 'Distanza input script - KML (m)', 'KML_tracciato_m': 'Lunghezza tracciato KML (m)',
     'A_medio': 'Area 30 m dal punto medio (km²)', 'OK_punto_medio': 'Compatibile dal punto medio',
     'A_kml': 'Area 30 m dal punto KML (km²)', 'OK_punto_KML': 'Compatibile dal punto KML',
+    'Intersezione': 'Intersezione tracciato-reticolo', 'Dist_tracciato_reticolo_m': 'Distanza tracciato-reticolo (m)',
+    'Dist_intersezione_input_m': 'Distanza intersezione - input (m)',
+    'N_corsi_intersecati': 'N. corsi intersecati', 'Aree_intersecate_km2': 'Aree dei corsi intersecati (km²)',
+    'A_intersezione_km2': "Area 30 m dall'intersezione (km²)", 'OK_intersezione': "Compatibile dall'intersezione",
     'N_segnalazioni': 'N. segnalazioni', 'Segnalazioni': 'Segnalazioni', 'Nota': 'Nota',
 }
 x = t[list(cols)].rename(columns=cols).sort_values('ID')
@@ -62,6 +70,8 @@ sint = pd.DataFrame([
     ('Ponti abbinati al KML per strada e progressiva', int((t.KML_abbinamento == 'strada+km').sum())),
     ('Compatibili ±15% agganciando dal punto medio (input attuale)', int((x['Compatibile dal punto medio'] == True).sum())),
     ('Compatibili ±15% agganciando dal punto KML', int((x['Compatibile dal punto KML'] == True).sum())),
+    ("Compatibili ±15% dall'intersezione tracciato-reticolo", int((x["Compatibile dall'intersezione"] == True).sum())),
+    ('Tracciati che intersecano il reticolo a 30 m', int((t.Intersezione == 'sul tracciato').sum())),
 ], columns=['Controllo', 'N. ponti'])
 with pd.ExcelWriter(out, engine='openpyxl') as w:
     x.to_excel(w, sheet_name='Ponti', index=False)

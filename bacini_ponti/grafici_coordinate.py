@@ -56,7 +56,8 @@ es.to_file(gpkg, layer='esito_aree', driver='GPKG')
 ini = gpd.read_file(gpkg, layer='db_inizio').set_index('ID')
 fin = gpd.read_file(gpkg, layer='db_fine').set_index('ID')
 kml = gpd.read_file(gpkg, layer='kml_abbinato').set_index('ID')
-trc = gpd.read_file(gpkg, layer='kml_tracciati')
+trc = gpd.read_file(gpkg, layer='tracciato_usato').set_index('ID')
+itx = gpd.read_file(gpkg, layer='intersezione_tracciato_reticolo').set_index('ID')
 es = es.set_index('ID')
 
 # ---------------- Mappa d'insieme ----------------
@@ -102,9 +103,12 @@ for p in range(0, len(ids), per_pag):
         x1, y1 = T * (c1, r1)
         ax.imshow(np.where(w > 0, np.log10(np.maximum(w, 1e-3)), np.nan), extent=(x0, x1, y1, y0),
                   cmap='Blues', vmin=-1, vmax=3.5, interpolation='nearest')
-        t = trc[trc.nome == kml.KML_nome.get(i)]
-        if len(t):
-            t.plot(ax=ax, color='#6b6b6b', lw=2, zorder=2)
+        if i in trc.index:
+            xs, ys = trc.geometry[i].xy
+            ax.plot(xs, ys, color='#6b6b6b', lw=2.5, zorder=2)
+        if i in itx.index:
+            ax.scatter(itx.geometry[i].x, itx.geometry[i].y, marker='X', s=90, c='#1a9850', ec='white',
+                       lw=.6, zorder=7)
         if i in ini.index and i in fin.index:
             ax.plot([ini.geometry[i].x, fin.geometry[i].x], [ini.geometry[i].y, fin.geometry[i].y],
                     color='#c00000', lw=1, ls='--', zorder=3)
@@ -132,8 +136,9 @@ for p in range(0, len(ids), per_pag):
         plt.Line2D([], [], marker='o', ls='', c='#111111', label='input script (= punto medio DB)'),
         plt.Line2D([], [], marker='*', ls='', c='#f2c200', mec='#333', ms=12, label='punto KML'),
         plt.Line2D([], [], c='#6b6b6b', lw=2, label='tracciato KML'),
+        plt.Line2D([], [], marker='X', ls='', c='#1a9850', ms=10, label='intersezione tracciato-reticolo'),
         plt.Rectangle((0, 0), 1, 1, fc='#6aaed6', label='reticolo 30 m (più scuro = area maggiore)'),
-    ], loc='lower center', ncol=6, fontsize=9, frameon=False)
+    ], loc='lower center', ncol=7, fontsize=9, frameon=False)
     fig.suptitle('Dettaglio 1 km × 1 km dei ponti con segnalazioni o non compatibili', fontsize=11, x=0.01, ha='left')
     plt.tight_layout(rect=(0, 0.03, 1, 0.97))
     plt.savefig(os.path.join(cdir, f'schede_dettaglio_{p // per_pag + 1:02d}.png'))
