@@ -22,7 +22,9 @@ agg = agg[np.isclose(agg.Soglia_km2, soglia)].set_index('ID')
 par = pd.read_csv(os.path.join(run, 'finali', 'bacini_5m_parametri.csv')).set_index('ID')
 cc = pd.read_csv(os.path.join(cdir, 'controllo_coordinate.csv')).set_index('ID')
 a30 = pd.read_csv(alt30).set_index('ID')
-a5o = pd.read_csv(os.path.join(cdir, '..', 'aree_dem30_soglia_0.25.csv')).set_index('ID')
+p_a5o = os.path.join(cdir, '..', 'aree_dem30_soglia_0.25.csv')
+a5o = pd.read_csv(p_a5o).set_index('ID') if os.path.exists(p_a5o) else \
+    pd.DataFrame({'A_5m_originale_km2': pd.Series(dtype=float)})
 
 ids = range(1, 213)
 d = pd.DataFrame(index=pd.Index(ids, name='ID'))
