@@ -207,7 +207,7 @@ strato(cl['db_fine'], 'db_fine')
 strato(cl['db_attraversamento_inizio_fine'], 'db_segmento_inizio_fine')
 if os.environ.get('RIF_SHP'):
     rs = gpd.read_file(os.environ['RIF_SHP']).to_crs(32633)
-    zona = cl['input_script'].loc[nc].buffer(1500).unary_union
+    zona = cl['input_script'].loc[nc].buffer(1500).union_all()
     rs = rs[rs.intersects(zona)][['nome', 'livello', 'sibapo', 'geometry']]
     rs.to_file(gp, layer='reticolo_riferimento', driver='GPKG')
 # strato vuoto da compilare: sezione corretta digitalizzata su ortofoto
