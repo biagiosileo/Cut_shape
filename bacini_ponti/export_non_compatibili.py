@@ -29,7 +29,7 @@ orig = P['Probabile origine errore'].copy()
 CORR = {107: 'Calcolo: alveo abbandonato (Bradano Vecchio, aste ISPRA)',
         108: 'Calcolo: alveo abbandonato (Bradano Vecchio, aste ISPRA)',
         164: 'Calcolo: canale artificiale di scolo (DB), bacino non ricostruibile dal DEM',
-        21: 'Database: opera su ferrovia (DB), area non riferibile al fosso attraversato'}
+        21: 'Database: area 1.333 km² incompatibile con il corso attraversato (DB: reticolo secondario, alveo 17 m)'}
 for i, v in CORR.items():
     if i in nc:
         orig[i] = v
