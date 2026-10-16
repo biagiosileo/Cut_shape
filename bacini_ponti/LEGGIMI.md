@@ -43,3 +43,16 @@ completati vengono saltati. Tempo indicativo: 40-60 minuti; memoria: circa 10 GB
 
 Controlli e prodotti aggiuntivi: `verifica_parametri.py` (controlli sui parametri morfometrici),
 `criticita_database.py`, `confronto_aste_ispra.py`, `export_non_compatibili.py`, `grafici_5m.py`.
+
+## Input per il codice dell'utente (pysheds_bridges.py)
+
+1. `finestre_codice_utente.py` – ripartisce i ponti in 52 finestre ritagliate sui bacini finali (+500 m),
+   tenendo i ponti con bacino piccolo fuori dalle finestre grandi.
+2. `input_codice_utente.py` – per ogni finestra: DEM ibrido inciso in `.asc`, CN `.tif` sulla stessa
+   griglia (NaN senza dato), CSV dei ponti (sezioni finali spostate di 1,25 m verso l'angolo in alto a
+   sinistra della cella, per lo snap di pysheds).
+3. `correggi_sezioni_pysheds.py` – sposta (max 25 m) le sezioni che con il condizionamento di pysheds
+   cadono fuori dall'alveo principale (ponti 14 e 155).
+
+Impostazioni del codice: `ACC_THRESHOLD = 4000`, `resolve_flats(flooded, eps=1e-6, max_iter=10000)`.
+Risultato verificato: 168 compatibili su 207, nessun ponte cambia classe rispetto al riferimento.
