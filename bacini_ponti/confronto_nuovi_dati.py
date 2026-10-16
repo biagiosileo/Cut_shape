@@ -270,11 +270,7 @@ with pd.ExcelWriter(os.path.join(out, 'Nuovi_dati_confronto.xlsx'), engine='open
             max(len(str(c.value)) if c.value is not None else 0 for c in col) + 2, 55)
     ws.freeze_panes = 'B2'
     ws.auto_filter.ref = ws.dimensions
-# opere del censimento non presenti nel database
-abb = set(EL.Elenco_riga_excel.dropna().astype(int))
-extra = E[~(E.index + 3).isin(abb)][['NUOVA NUMERAZIONE', 'Progressiva km', 'Nome opera', 'Comune', col_int, 'Note',
-                                     'Coordinate iniziali [Lat., Long.]']]
-extra.to_csv(os.path.join(out, 'censimento_opere_non_nel_database.csv'), index_label='riga_excel_meno_3')
+# le opere del censimento non presenti nel database (sovrappassi ecc.) non sono analizzate
 gpd.GeoDataFrame(D.reset_index()[['ID', 'Novità dai nuovi file']],
                  geometry=gpd.points_from_xy(N.kx.reindex(D.index), N.ky.reindex(D.index)), crs=32633) \
     .to_file(os.path.join(out, 'kml_nuovo_punti.gpkg'), layer='punti_kml_nuovo', driver='GPKG')
@@ -286,4 +282,3 @@ print('punti spostati >5 m:', int((N.KMLn_spost_da_KML_vecchio_m > 5).sum()),
       '; tracciati spostati >5 m:', int((N.Tracciato_spost_m > 5).sum()))
 print('Elenco:', len(E), 'righe; abbinamenti', EL.Elenco_abbinamento.str.split(' ').str[0].value_counts().to_dict())
 print('Intercetta:', EL.Intercetta_asta_canale.astype(str).str.strip().str.lower().value_counts().to_dict())
-print('opere del censimento non nel database:', len(extra))
