@@ -2,8 +2,9 @@
 DEM unico, CN unico e CSV unico per pysheds_bridges_5m.py (lettura a porzioni).
 
   - dem5m_unico.tif: DEM 5 m ibrido con reticolo di riferimento inciso (BRUCIA_M) su tutta
-    l'area dei bacini (unione delle porzioni + margine), GeoTIFF float32, EPSG:32633,
-    nodata -9999. Valori arrotondati a 2 decimali come negli .asc gia' verificati;
+    l'area dei bacini (unione delle porzioni + margine), GeoTIFF Int32 in centimetri con
+    scala 0,01 (QGIS lo mostra in metri), EPSG:32633, nodata -999999. Stesse quote al cm
+    degli .asc gia' verificati;
   - cn5m_unico.tif: Curve Number sulla stessa griglia (float32, NaN senza dato);
   - ponti.csv: id, X, Y (WGS84, sezioni finali come nei CSV delle finestre, comprese le
     correzioni) + porzione e suoi limiti in UTM (xmin, ymin, xmax, ymax).
@@ -107,11 +108,18 @@ for w in fin:
         raise SystemExit(f"porzione {w['k']}: il DEM unico non coincide (diff max {d.max()})")
 print('controllo porzioni: tutte coincidenti', flush=True)
 
+# quote in centimetri interi (scala 0,01): stessa precisione, file piu' piccolo (432 MB)
+ok = z != NODATA
+zi = np.full(z.shape, -999999, np.int32)
+zi[ok] = np.rint(z[ok].astype(np.float64) * 100).astype(np.int32)
+del z, ok
 with rasterio.open(os.path.join(out, 'dem5m_unico.tif'), 'w', driver='GTiff', height=H, width=W, count=1,
-                   dtype='float32', crs=crs, transform=T, nodata=NODATA, compress='deflate', predictor=3,
-                   tiled=True, blockxsize=512, blockysize=512, BIGTIFF='YES') as d:
-    d.write(z, 1)
-del z
+                   dtype='int32', crs=crs, transform=T, nodata=-999999, compress='deflate', predictor=2,
+                   zlevel=9, tiled=True, blockxsize=512, blockysize=512, BIGTIFF='YES') as d:
+    d.write(zi, 1)
+    d.scales = (0.01,)
+    d.units = ('m',)
+del zi
 
 # 4) CN sulla stessa griglia
 cn_files = sorted(glob.glob(os.path.join(cn_dir, '**', '*.tif'), recursive=True))

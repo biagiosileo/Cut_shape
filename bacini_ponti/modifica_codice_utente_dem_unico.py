@@ -21,7 +21,7 @@ Una porzione gia' elaborata (file in porzioni/) viene saltata: il lancio si puo'
 interrompere e riprendere. Per una sola porzione: python pysheds_bridges_5m.py porzione_NN
 
 Input attesi:
-  - DEM unico in GeoTIFF (dem_path), in CRS proiettato (metrico).''')
+  - DEM unico in GeoTIFF (dem_path), in CRS proiettato (metrico); quote in cm con scala 0,01.''')
 rep('import numpy as np\n', f'''import numpy as np
 {M} compatibilita' con numpy 2 (pysheds usa np.in1d, rimosso in numpy 2)
 if not hasattr(np, "in1d"):
@@ -79,22 +79,26 @@ _limiti = tuple(_ponti.iloc[0][['xmin', 'ymin', 'xmax', 'ymax']])
 print(f"{{PORZIONE}}: {{len(_ponti)}} ponti.")
 
 
-def leggi_porzione(path, limiti, dtype):
+def leggi_porzione(path, limiti, dtype, nodata_out):
+    """Legge solo la porzione richiesta; applica il fattore di scala del file
+    (il DEM unico e' salvato in centimetri interi con scala 0,01)."""
     with rasterio.open(path) as src:
         w = from_bounds(*limiti, transform=src.transform).round_offsets().round_lengths()
-        a = src.read(1, window=w).astype(dtype)
+        a = src.read(1, window=w)
         affine = src.window_transform(w)
-        nodata = src.nodata
-    vf = ViewFinder(affine=affine, shape=a.shape, nodata=a.dtype.type(nodata), crs=dem_crs_obj)
+        senza_dato = (a == src.nodata) | np.isnan(a) if src.nodata is not None else np.isnan(a)
+        a = a.astype(dtype) * src.scales[0] + src.offsets[0]
+    a[senza_dato] = nodata_out
+    vf = ViewFinder(affine=affine, shape=a.shape, nodata=a.dtype.type(nodata_out), crs=dem_crs_obj)
     return Raster(a, vf)
 
 
-dem = leggi_porzione(dem_path, _limiti, np.float64)
+dem = leggi_porzione(dem_path, _limiti, np.float64, -9999.0)
 _v = dem != -9999
-dem[_v] = np.round(dem[_v], 2)  # quote al cm, come nel DEM di origine
+dem[_v] = np.round(dem[_v], 2)  # quote in metri al cm
 del _v
 grid = Grid(viewfinder=dem.viewfinder)
-cn_grid = leggi_porzione(cn_path, _limiti, np.float32)
+cn_grid = leggi_porzione(cn_path, _limiti, np.float32, np.nan)
 ''')
 rep('inflated_dem = grid.resolve_flats(flooded)\n',
     f'''{M} con i valori di default (eps=1e-5, max_iter=1000) sulle grandi aree piatte
