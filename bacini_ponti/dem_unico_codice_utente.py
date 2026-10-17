@@ -108,14 +108,14 @@ for w in fin:
         raise SystemExit(f"porzione {w['k']}: il DEM unico non coincide (diff max {d.max()})")
 print('controllo porzioni: tutte coincidenti', flush=True)
 
-# quote in centimetri interi (scala 0,01): stessa precisione, file piu' piccolo (432 MB)
+# quote in centimetri interi (scala 0,01) e compressione ZSTD: stessa precisione, 383 MB
 ok = z != NODATA
 zi = np.full(z.shape, -999999, np.int32)
 zi[ok] = np.rint(z[ok].astype(np.float64) * 100).astype(np.int32)
 del z, ok
 with rasterio.open(os.path.join(out, 'dem5m_unico.tif'), 'w', driver='GTiff', height=H, width=W, count=1,
-                   dtype='int32', crs=crs, transform=T, nodata=-999999, compress='deflate', predictor=2,
-                   zlevel=9, tiled=True, blockxsize=512, blockysize=512, BIGTIFF='YES') as d:
+                   dtype='int32', crs=crs, transform=T, nodata=-999999, compress='zstd', predictor=2,
+                   zstd_level=22, tiled=True, blockxsize=512, blockysize=512, BIGTIFF='YES') as d:
     d.write(zi, 1)
     d.scales = (0.01,)
     d.units = ('m',)
