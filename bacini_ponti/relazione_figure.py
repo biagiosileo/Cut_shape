@@ -19,7 +19,7 @@ from matplotlib.patches import FancyBboxPatch, Patch
 
 dati, cgpkg, out = sys.argv[1:4]
 os.makedirs(out, exist_ok=True)
-plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 9, 'axes.titlesize': 10})
+plt.rcParams.update({'font.family': 'serif', 'font.serif': ['Liberation Serif', 'Times New Roman', 'DejaVu Serif'], 'font.size': 9, 'axes.titlesize': 10})
 COL_A, COL_B = '#1f6fd1', '#e07b12'
 INK, MUTED = '#222222', '#666666'
 TR = gpd.read_file(cgpkg, layer='tracciato_usato').set_index('ID').geometry
@@ -245,12 +245,12 @@ def freccia(x0, y0, x1, y1):
 box(14, 52, 72, 6, 'DATI: DEM 5 m (reticolo inciso) · CN · database (inizio/fine) · tracciati KML', '#e8e8e8')
 box(2, 40, 44, 8, 'A - CODICE (pysheds)\nfill_pits + fill_depressions + resolve_flats\nD8 · accumulo · reticolo acc > 4000 celle',
     '#dce8f8', COL_A)
-box(54, 40, 44, 8, 'B - INDIPENDENTE (WhiteboxTools)\nbreaching a costo minimo\nD8 · accumulo · reticolo acc > 4000 celle',
+box(54, 40, 44, 8, 'B - METODO INDIPENDENTE\ndepressioni scavate (breaching a costo minimo)\nD8 · accumulo · reticolo acc > 4000 celle',
     '#fbe7d3', COL_B)
 box(2, 28, 44, 8, '1. Sezione: punto del CSV (intersezione\ntracciato-reticolo) agganciato con snap_to_mask', '#dce8f8', COL_A)
 box(54, 28, 44, 8, '1. Sezione ricavata di nuovo: cella del reticolo B\nattraversata dal tracciato KML (accumulo max)', '#fbe7d3', COL_B)
 box(2, 16, 44, 8, '2. Bacino A: catchment pysheds\nA = n. celle × 25 m²', '#dce8f8', COL_A)
-box(54, 16, 44, 8, '2. Bacino B: watershed Whitebox\nA = n. celle × 25 m²', '#fbe7d3', COL_B)
+box(54, 16, 44, 8, '2. Bacino B: celle che drenano alla sezione B\nA = n. celle × 25 m²', '#fbe7d3', COL_B)
 box(2, 2, 44, 10, '3-6. Parametri del codice: CN, L, P, quote,\npendenze, indici di forma\n+ RICALCOLO INDIPENDENTE sul bacino A', '#dce8f8', COL_A)
 box(54, 2, 44, 10, 'Confronto A-B: area, sovrapposizione (IoU),\nposizione della sezione, L, quote, CN', '#fbe7d3', COL_B)
 freccia(30, 51.6, 24, 48.6)
