@@ -18,7 +18,7 @@ F = {
     'f_d8': r'$\mathrm{direzione}(i) = \mathrm{arg\,max}_{\,j}\ \frac{z_i - z_j}{d_{ij}},\qquad d_{ij} = 5\ \mathrm{m\ (lato)},\ \ 5\sqrt{2}\ \mathrm{m\ (diagonale)}$',
     'f_area': r'$A = n_{\mathrm{celle}} \cdot \Delta x \cdot \Delta y = n_{\mathrm{celle}} \cdot 25\ \mathrm{m^2}$',
     'f_iou': r'$\mathrm{IoU} = \frac{\mathrm{area}(A \cap B)}{\mathrm{area}(A \cup B)}$',
-    'f_cn': r'$CN_{\mathrm{medio}} = \frac{1}{n_{CN}} \sum_{i} CN_i \qquad (\mathrm{celle\ del\ bacino\ con\ CN\ valido})$',
+    'f_cn': r'$CN_{\mathrm{medio}} = \frac{1}{n} \sum_{i\, \in\, \mathrm{bacino}} CN_i$',
     'f_scs': r'$S = \frac{25400}{CN} - 254,\qquad I_a = 0{,}2\,S,\qquad Q = \frac{(P - I_a)^2}{P - I_a + S}\quad (P > I_a)$',
     'f_L': r'$L = \max_{i\, \in\, \mathrm{bacino}}\ \sum_{i \rightarrow \mathrm{sezione}} d_{\mathrm{passo}},\qquad d_{\mathrm{passo}} = 5\ \mathrm{m}\ \mathrm{oppure}\ 5\sqrt{2}\ \mathrm{m}$',
     'f_P': r'$P = n_{\mathrm{lati\ di\ confine}} \cdot 5\ \mathrm{m}$',

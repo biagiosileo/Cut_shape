@@ -138,7 +138,7 @@ def fig_cn(i, d, ax):
     cb = plt.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
     cb.set_label('Curve Number')
     v = V.loc[i]
-    ax.set_title(f'Ponte {i}: CN nel bacino - medio {v.CN_medio:.1f} (copertura {v.Quota_area_con_CN:.0%})')
+    ax.set_title(f'Ponte {i}: CN nel bacino - medio {v.CN_medio:.1f}')
 
 
 def fig_ipso(i, d, ax):

@@ -99,7 +99,7 @@ sec.push(H1('1. Scopo e campione'));
 sec.push(P('La relazione documenta la verifica del codice pysheds_bridges_5m.py, che per ogni ponte delimita il bacino idrografico a monte della sezione di attraversamento e ne calcola i parametri morfologici. La verifica segue il flusso di lavoro del codice, un passo per volta: per ciascun passo riporta le formule implementate, una figura e il confronto sul campione.'));
 sec.push(P('La verifica è condotta su due livelli:'));
 sec.push(punto([B('Estrazione del bacino. '), t('Il bacino del codice (metodo A, pysheds) è confrontato con un bacino ricavato in modo indipendente (metodo B), con un software, un trattamento delle depressioni e una determinazione della sezione diversi (capitolo 5).')]));
-sec.push(punto([B('Calcolo dei parametri. '), t('Sul bacino del codice tutti i parametri sono ricalcolati con codice scritto da zero, che non riusa le funzioni del codice verificato. I parametri derivati sono ricalcolati anche in un foglio Excel con le formule in chiaro (allegato B).')]));
+sec.push(punto([B('Calcolo dei parametri. '), t('Sul bacino del codice tutti i parametri sono ricalcolati con codice scritto da zero, che non riusa le funzioni del codice verificato. I parametri derivati sono ricalcolati anche in un foglio Excel con le formule in chiaro (allegato).')]));
 sec.push(P('Il campione copre i casi tipici e i casi critici emersi dal confronto con il database:'));
 sec.push(tabella(['ID', 'Nome opera', 'Caso', 'Area DB (km²)', 'Area codice (km²)', 'Esito (±15%)'], D.campione, [6, 30, 34, 12, 12, 16], { left: [1, 2] }));
 sec.push(didTab('Tab.1 - Campione di verifica. Area codice: risultati del lancio del codice (NEW_parametri_morfologici.csv).'));
@@ -121,8 +121,7 @@ sec.push(tabella(['Modifica', 'Dove (sezione del codice, righe)', 'Motivo'], [
 sec.push(didTab('Tab.2 - Modifiche apportate al codice originale.'));
 sec.push(P('Il calcolo dei parametri morfologici (righe 403–537: area, pendenze, quote, CN, percorso di flusso più lungo, perimetro e indici derivati) è invariato rispetto al codice originale, a parte la riga di compatibilità 496. Le formule riportate nei capitoli seguenti sono quindi quelle del codice originale.'));
 sec.push(H1('3. Flusso di lavoro'));
-sec.push(P('Il codice lavora su un DEM a 5 m (DTM a 5 m dove disponibile, DEM a 30 m ricampionato fuori copertura) in cui il reticolo di riferimento è inciso di 5 m, così che l\'acqua segua l\'alveo anche nelle zone pianeggianti. Il DEM è unico ma viene letto a porzioni, ciascuna contenente per intero i bacini dei suoi ponti. La figura 1 mostra i passi del codice (A) e del metodo indipendente (B) usato per verificarlo.'));
-sec.push(...figura('schema_flusso.png', 'Fig.1 - Flusso di lavoro del codice (A, a sinistra) e del metodo indipendente di verifica (B, a destra).', 16));
+sec.push(P('Il codice lavora su un DEM a 5 m (DTM a 5 m, completato con il DEM a 30 m ricampionato dove il 5 m non è disponibile) in cui il reticolo di riferimento è inciso di 5 m, così che l\'acqua segua l\'alveo anche nelle zone pianeggianti. Il DEM è unico ma viene letto a porzioni, ciascuna contenente per intero i bacini dei suoi ponti. Il codice (metodo A) e il metodo indipendente di verifica (metodo B) seguono gli stessi passi: individuazione della sezione, delimitazione del bacino, calcolo dei parametri.'));
 
 // ---------- 3. Passo 1: posizione ----------
 sec.push(H1('4. Passo 1 – Posizione dell\'attraversamento e intersezione con il reticolo'));
@@ -130,7 +129,7 @@ sec.push(P('Il database riporta per ogni ponte le coordinate di inizio e di fine
 sec.push(P('Il reticolo è l\'insieme delle celle con accumulo di flusso superiore alla soglia:'));
 sec.push(...formula('f_reticolo'));
 sec.push(P([t('Nel codice la sezione è letta dal CSV (coordinate WGS84) e agganciata alla cella del reticolo più vicina con '), I('snap_to_mask'), t('. Poiché pysheds misura la distanza dagli angoli in alto a sinistra delle celle, il punto del CSV è spostato di 1,25 m verso quell\'angolo: l\'aggancio è così univoco e la distanza di snap riportata dal codice è di circa 1,8 m.')]));
-sec.push(...figura(`id${String(S.id).padStart(3, '0')}_posizione.png`, `Fig.2 - Ponte ${S.id} (${S.nome}): punti di inizio e fine del database, tracciato KML, reticolo A (codice) e B (metodo indipendente), sezioni di chiusura A e B.`, 13));
+sec.push(...figura(`id${String(S.id).padStart(3, '0')}_posizione.png`, `Fig.1 - Ponte ${S.id} (${S.nome}): punti di inizio e fine del database, tracciato KML, reticolo A (codice) e B (metodo indipendente), sezioni di chiusura A e B.`, 13));
 sec.push(P('Nel metodo indipendente la sezione non è presa dal codice ma ricavata di nuovo, con la stessa regola, sul reticolo B. La tabella 3 confronta le due sezioni.'));
 sec.push(tabella(['ID', 'Snap del codice (m)', 'Regola della sezione B', 'Distanza sezione A – B (m)'], D.posizione, [8, 18, 50, 20], { left: [2] }));
 sec.push(didTab('Tab.3 - Posizione della sezione: codice (A) e metodo indipendente (B).'));
@@ -154,22 +153,21 @@ sec.push(P('Il confronto usa l\'area e la sovrapposizione dei due bacini, misura
 sec.push(...formula('f_iou'));
 sec.push(tabella(['ID', 'A codice (km²)', 'A ricalcolo celle (km²)', 'A poligono (km²)', 'B indipendente (km²)', 'Diff. B/A', 'IoU', 'Area DB (km²)'], D.area, [6, 12, 13, 12, 13, 9, 9, 11]));
 sec.push(didTab('Tab.4 - Area del bacino: codice, ricalcolo indipendente sul bacino del codice (conteggio delle celle e area del poligono) e metodo indipendente B.'));
-sec.push(...figura(`id${String(S.id).padStart(3, '0')}_bacino.png`, `Fig.3 - Ponte ${S.id}: bacino A (codice, campitura) e bacino B (metodo indipendente, tratteggio), reticolo e percorso di flusso più lungo.`, 13));
-sec.push(...figura('sintesi_aree_A_B.png', 'Fig.4 - Area del bacino calcolata dal codice (A) e con il metodo indipendente (B). Fascia grigia: ±15%.', 12));
+sec.push(...figura(`id${String(S.id).padStart(3, '0')}_bacino.png`, `Fig.2 - Ponte ${S.id}: bacino A (codice, campitura) e bacino B (metodo indipendente, tratteggio), reticolo e percorso di flusso più lungo.`, 13));
+sec.push(...figura('sintesi_aree_A_B.png', 'Fig.3 - Area del bacino calcolata dal codice (A) e con il metodo indipendente (B). Fascia grigia: ±15%.', 12));
 sec.push(H2('5.3 Esito'));
 sec.push(P([t(`In ${D.sintesi.n_ok} ponti su ${D.sintesi.n} (ID ${D.sintesi.id_ok.join(', ')}) i due metodi danno lo stesso bacino: sovrapposizione almeno del 90% e differenza di area al massimo del ${D.sintesi.max_diff_ok}. Nei bacini fino a 250 km² la differenza resta entro l\'1% (3% per il ponte 107); la differenza massima riguarda il ponte 167 (Bradano, circa 2.085 km²), dove una parte delle aree piatte di pianura viene attribuita al bacino da un metodo e non dall\'altro, e il codice resta il più vicino al database. `), t('Il ricalcolo dell\'area sul bacino del codice coincide con il valore del codice sia contando le celle sia misurando il poligono. L\'estrazione del bacino è quindi verificata.')]));
 sec.push(P([t(`Nei ponti ${D.sintesi.id_ko.join(', ')} i due metodi danno bacini diversi. Sono i casi critici: tracciato che non tocca il reticolo, coordinate del database errate, piana di bonifica, bacino molto piccolo. Qui il bacino dipende dalle scelte del metodo e `), B('non è determinabile in modo affidabile dal DEM'), t('. È la conferma indipendente di quanto attribuito a questi ponti nell\'analisi delle incompatibilità: errore nel database o bacino non ricostruibile dal DEM.')]));
-sec.push(...figura('id154_scheda.png', 'Fig.5 - Ponte 154 (piana di bonifica, Via Idrovora): i due metodi danno bacini disgiunti, il percorso dell\'acqua nelle aree piatte dipende dal metodo.', 16));
+sec.push(...figura('id154_scheda.png', 'Fig.4 - Ponte 154 (piana di bonifica, Via Idrovora): i due metodi danno bacini disgiunti, il percorso dell\'acqua nelle aree piatte dipende dal metodo.', 16));
 
 // ---------- 5. CN ----------
 sec.push(H1('6. Passo 3 – Curve Number'));
-sec.push(P('Il Curve Number (CN, metodo SCS-CN) riassume in un numero da 30 a 100 la propensione del bacino a produrre deflusso, in funzione del tipo di suolo e dell\'uso del suolo: valori alti indicano suoli poco permeabili o impermeabilizzati. Il codice ne calcola la media sulle celle del bacino con CN valido; dove il dato manca (fuori dalla copertura a 5 m) la cella è esclusa dalla media.'));
+sec.push(P('Il Curve Number (CN, metodo SCS-CN) riassume in un numero da 30 a 100 la propensione del bacino a produrre deflusso, in funzione del tipo di suolo e dell\'uso del suolo: valori alti indicano suoli poco permeabili o impermeabilizzati. Il codice ne calcola la media sulle celle del bacino.'));
 sec.push(...formula('f_cn'));
 sec.push(P('Il CN serve a stimare il deflusso diretto Q prodotto da una pioggia P (in mm):'));
 sec.push(...formula('f_scs'));
 sec.push(P([t(`Esempio, ponte ${D.scs.id}: CN = ${D.scs.CN}, quindi S = ${D.scs.S} mm e Iₐ = ${D.scs.Ia} mm. Con una pioggia di ${D.scs.P} mm il deflusso diretto è Q = ${D.scs.Q} mm (coefficiente di deflusso ${D.scs.C}), pari a circa ${D.scs.V} m³ sull\'area di ${D.scs.A} km². È l\'ingresso tipico di un idrogramma di piena per la verifica idraulica del ponte.`)]));
-sec.push(...figura(`id${String(S.id).padStart(3, '0')}_cn.png`, `Fig.6 - Ponte ${S.id}: Curve Number nel bacino (copertura del dato ${S.cop}).`, 12));
-sec.push(tabella(['ID', 'CN codice', 'CN ricalcolo', 'Copertura del dato CN', 'CN bacino B'], D.cn, [8, 16, 16, 20, 16]));
+sec.push(tabella(['ID', 'CN codice', 'CN ricalcolo', 'CN bacino B'], D.cn.map((r) => [r[0], r[1], r[2], r[4]]), [10, 20, 20, 20]));
 sec.push(didTab('Tab.5 - CN medio: codice, ricalcolo indipendente (statistica zonale sul bacino A) e bacino del metodo indipendente.'));
 
 // ---------- 6. Lunghezze ----------
@@ -188,8 +186,7 @@ sec.push(P('Il perimetro misurato sul contorno a gradini delle celle è più lun
 sec.push(H1('8. Passo 5 – Quote, ipsometria e pendenze'));
 sec.push(P('Le quote sono lette sul DEM in input (quote reali, non condizionate), sulle celle del bacino:'));
 sec.push(...formula('f_quote'));
-sec.push(P(`Per il ponte ${S.id}: AE = ${S.AE} m, R = ${S.R} m, z_min = ${S.hmin} m, quindi HI = ${S.HI}. La curva ipsometrica (figura 7) mostra la distribuzione delle quote nel bacino; l'integrale ipsometrico HI ne è l'area sottesa.`));
-sec.push(...figura(`id${String(S.id).padStart(3, '0')}_ipsometria.png`, `Fig.7 - Ponte ${S.id}: curva ipsometrica.`, 10));
+sec.push(P(`Per il ponte ${S.id}: AE = ${S.AE} m, R = ${S.R} m, z_min = ${S.hmin} m, quindi HI = ${S.HI}. L'integrale ipsometrico HI è l'area sottesa alla curva ipsometrica, cioè alla distribuzione delle quote nel bacino.`));
 sec.push(P('La pendenza locale di ogni cella è la massima pendenza discendente verso le 8 celle vicine, calcolata sul DEM condizionato; la pendenza media del bacino S è la media sulle celle del bacino:'));
 sec.push(...formula('f_s'));
 sec.push(P('La pendenza del tratto è calcolata su 500 m di alveo centrati sulla sezione: 250 m a monte lungo il ramo con accumulo maggiore e 250 m a valle lungo la direzione di flusso.'));
@@ -200,7 +197,7 @@ sec.push(P('Nel DEM in input il reticolo è inciso di 5 m. Per questo la quota m
 
 // ---------- 8. Indici ----------
 sec.push(H1('9. Passo 6 – Indici di forma e di rilievo'));
-sec.push(P('Gli indici derivati sono calcolati dal codice a partire dalle grandezze primarie (A in km², L e P in km, R, AE e z_min in m). La tabella 8 riporta le formule, verificate ricalcolando ogni indice dalle grandezze primarie del codice. Nell\'Excel di verifica (allegato B) le grandezze primarie si possono modificare a mano, una a una, e gli indici si ricalcolano con le stesse formule.'));
+sec.push(P('Gli indici derivati sono calcolati dal codice a partire dalle grandezze primarie (A in km², L e P in km, R, AE e z_min in m). La tabella 8 riporta le formule, verificate ricalcolando ogni indice dalle grandezze primarie del codice. Nell\'Excel di verifica (allegato) le grandezze primarie si possono modificare a mano, una a una, e gli indici si ricalcolano con le stesse formule.'));
 sec.push(tabella(['Indice', 'Formula', 'Massima differenza sul campione', 'Esito'], D.derivati, [30, 26, 22, 18], { left: [0, 1] }));
 sec.push(didTab('Tab.8 - Indici derivati: formule del codice e verifica (il codice arrotonda gli indici a 4 decimali).'));
 
@@ -218,7 +215,7 @@ sec.push(H1('11. Replicabilità'));
 sec.push(P('Il procedimento è deterministico: a parità di dati in ingresso, versione del codice e impostazioni, i risultati sono identici. Lo dimostra un confronto già eseguito. Il lancio del codice fatto dall\'utente sul proprio computer e quello fatto in modo indipendente su un altro sistema hanno dato, sui 206 ponti confrontabili, gli stessi valori in tutti i 26 parametri, senza differenze nemmeno all\'ultima cifra. Sui 6 ponti restanti coincidono le aree.'));
 sec.push(H2('11.1 Dati in ingresso'));
 sec.push(punto([B('dem5m_unico.tif: '), t('DEM 5 m unico (25.050 × 19.429 celle), EPSG:32633, quote in centimetri interi con fattore di scala 0,01, reticolo di riferimento inciso di 5 m.')]));
-sec.push(punto([B('cn5m_unico.tif: '), t('Curve Number sulla stessa griglia, NaN dove il dato manca.')]));
+sec.push(punto([B('cn5m_unico.tif: '), t('Curve Number sulla stessa griglia del DEM.')]));
 sec.push(punto([B('ponti.csv: '), t('212 ponti con ID del database, coordinate WGS84 della sezione (spostate di 1,25 m verso l\'angolo della cella) e limiti della porzione di DEM.')]));
 sec.push(punto([B('controllo_coordinate.gpkg: '), t('tracciati KML e punti di inizio e fine del database, usati dal metodo indipendente.')]));
 sec.push(H2('11.2 Impostazioni fisse'));
@@ -243,24 +240,14 @@ sec.push(H2('11.5 Limiti'));
 sec.push(punto('La memoria richiesta cresce con la porzione: circa 1 GB ogni 10 milioni di celle. Per il ponte 167 (porzione da 162 milioni di celle) il ricalcolo è stato eseguito in precisione singola e, per il bacino B, il percorso di flusso più lungo non è stato calcolato.'));
 sec.push(punto('Il risultato dipende dal DEM in ingresso: un DEM diverso (non inciso, o a risoluzione diversa) dà bacini e parametri diversi, anche se calcolati con lo stesso codice.'));
 
-// ---------- Allegato A ----------
-sec.push(new Paragraph({ children: [new PageBreak()] }));
-sec.push(H1('Allegato A – Schede dei ponti del campione'));
-sec.push(P('Per ogni ponte: a sinistra la posizione dell\'attraversamento (tracciato KML, punti del database, reticoli A e B, sezioni A e B); a destra il bacino del codice (A) e quello del metodo indipendente (B), con il percorso di flusso più lungo.'));
-for (const id of D.ids) {
-  const s = D.scheda[String(id)];
-  sec.push(H2(`Ponte ${id} – ${s.nome}`));
-  sec.push(P([t(`Caso: ${s.caso}. Area DB ${s.A_db} km²; codice ${s.A} km² (${s.classe}); metodo indipendente ${s.A_B} km²; sovrapposizione ${s.IoU}. Sezione B: ${s.regola}, a ${s.dist} m dalla sezione A. L: codice ${s.L} km, metodo B ${s.L_B} km. CN medio ${s.CN}.`, { size: 19 })]));
-  sec.push(...figura(`id${String(id).padStart(3, '0')}_scheda.png`, `Scheda del ponte ${id}.`, 16.5));
-}
-
 // ---------- Allegato B ----------
-sec.push(H1('Allegato B – Excel di verifica'));
+sec.push(H1('Allegato – Excel di verifica e schede dei ponti'));
 sec.push(P('Il file Verifica_codice_campione.xlsx accompagna la relazione. Dove possibile le celle contengono formule e non valori: testo nero per le formule, blu per i valori inseriti (dal codice o dal ricalcolo), verde per i collegamenti tra fogli. Contiene quattro fogli:'));
 sec.push(punto([B('Legenda: '), t('istruzioni, colori e formule.')]));
 sec.push(punto([B('Grandezze primarie: '), t('valori del codice e del ricalcolo indipendente. Area (n. celle × 25 m²) e rilievo (z_max − z_min) del ricalcolo sono formule sui dati di base; differenze e numero di ponti entro tolleranza sono formule.')]));
 sec.push(punto([B('Parametri derivati: '), t('le grandezze in ingresso, in celle gialle, sono collegate al foglio precedente e si possono sovrascrivere a mano una alla volta. Gli indici sono formule identiche a quelle del codice, confrontate con il valore scritto dal codice.')]));
 sec.push(punto([B('Metodo indipendente: '), t('bacino A e bacino B a confronto: area comune, IoU, aree esclusive e scarti rispetto al database sono formule.')]));
+sec.push(P('Le schede illustrate di ciascuno degli 11 ponti del campione (posizione dell\'attraversamento, bacino A e bacino B) sono fornite a parte, insieme alle altre figure, nel file Figure_relazione.zip.'));
 
 const doc = new Document({
   creator: 'Verifica codice pysheds_bridges_5m.py',
