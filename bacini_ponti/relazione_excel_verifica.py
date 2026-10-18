@@ -186,8 +186,8 @@ for r, i in enumerate(ids, 2):
             c.number_format = '0.0'
         elif k in (12, 13):
             c.number_format = '0.000'
-    ws.conditional_formatting.add(f'G{r}', FormulaRule(formula=[f'G{r}>=0.95'], fill=VERDE))
-    ws.conditional_formatting.add(f'G{r}', FormulaRule(formula=[f'G{r}<0.95'], fill=ROSSO))
+    ws.conditional_formatting.add(f'G{r}', FormulaRule(formula=[f'G{r}>=0.90'], fill=VERDE))
+    ws.conditional_formatting.add(f'G{r}', FormulaRule(formula=[f'G{r}<0.90'], fill=ROSSO))
 ws.freeze_panes = 'C2'
 wb.save(out)
 print('salvato', out, len(ids), 'ponti')

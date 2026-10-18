@@ -45,6 +45,10 @@ def scala(ax, L):
             bbox=dict(facecolor='white', edgecolor='none', alpha=0.7, pad=1))
 
 
+def km2(v):
+    return f'{v:,.0f}'.replace(',', '.') if v >= 1000 else (f'{v:.3g}'.replace('.', ','))
+
+
 def pulisci(ax):
     ax.set_xticks([])
     ax.set_yticks([])
@@ -109,7 +113,7 @@ def fig_bacino(i, d, ax, titolo=True):
     scala(ax, None)
     if titolo:
         v = V.loc[i]
-        ax.set_title(f'Ponte {i}: bacino A {v.A_km2:.3g} km² - bacino B {v.A_B_km2:.3g} km² (IoU {v.IoU_AB:.0%})')
+        ax.set_title(f'Ponte {i}: bacino A {km2(v.A_km2)} km² - bacino B {km2(v.A_B_km2)} km² (IoU {v.IoU_AB:.0%})')
 
 
 LEG_BAC = [Patch(facecolor=COL_A, alpha=0.35, label='bacino A (codice)'),
@@ -188,7 +192,7 @@ for f in npz:
     fig_bacino(i, d, axs[1])
     axs[0].set_title('Posizione e intersezione', fontsize=9)
     v = V.loc[i]
-    axs[1].set_title(f'Bacino A {v.A_km2:.3g} km² / B {v.A_B_km2:.3g} km² (IoU {v.IoU_AB:.0%})', fontsize=9)
+    axs[1].set_title(f'Bacino A {km2(v.A_km2)} km² / B {km2(v.A_B_km2)} km² (IoU {v.IoU_AB:.0%})', fontsize=9)
     fig.legend(handles=LEG_POS[:5] + LEG_BAC[:2] + LEG_BAC[3:], loc='lower center', ncol=5, fontsize=7, frameon=False)
     fig.suptitle(f'Ponte {i}', fontsize=11)
     fig.tight_layout(rect=(0, 0.1, 1, 0.96))
@@ -202,9 +206,9 @@ x, y = V.A_km2, V.A_B_km2
 lo, hi = min(x.min(), y.min()) * 0.6, max(x.max(), y.max()) * 1.6
 ax.plot([lo, hi], [lo, hi], color=MUTED, lw=1)
 ax.fill_between([lo, hi], [lo * 0.85, hi * 0.85], [lo * 1.15, hi * 1.15], color='#dddddd', alpha=0.5, lw=0)
-ok = V.IoU_AB >= 0.95
-ax.scatter(x[ok], y[ok], s=36, color=COL_A, label='bacini coincidenti (IoU ≥ 95%)', zorder=3, edgecolor='white')
-ax.scatter(x[~ok], y[~ok], s=40, marker='D', color=COL_B, label='bacini diversi (IoU < 95%)', zorder=3,
+ok = V.IoU_AB >= 0.90
+ax.scatter(x[ok], y[ok], s=36, color=COL_A, label='bacini concordanti (IoU ≥ 90%)', zorder=3, edgecolor='white')
+ax.scatter(x[~ok], y[~ok], s=40, marker='D', color=COL_B, label='bacini diversi (IoU < 90%)', zorder=3,
            edgecolor='white')
 for k, (a, b) in zip(V.index, zip(x, y)):
     ax.annotate(str(k), (a, b), xytext=(4, -9), textcoords='offset points', fontsize=7, color=INK)

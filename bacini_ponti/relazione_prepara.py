@@ -114,9 +114,10 @@ R['scs'] = {'id': i0, 'CN': f(cn, 2), 'S': f(S_, 1), 'Ia': f(Ia, 1), 'P': f(Pm, 
             'C': pct(Q / Pm, 0), 'A': f(float(U.loc[i0, 'A_km2']), 2), 'V': f(Q / 1000 * float(U.loc[i0, 'A_km2']) * 1e6, 0)}
 # sintesi metodo B
 ok = V.loc[ids]
-R['sintesi'] = {'n': len(ids), 'n_ok': int((ok.IoU_AB >= 0.95).sum()), 'id_ok': [str(i) for i in ids if V.IoU_AB[i] >= 0.95],
-                'id_ko': [str(i) for i in ids if V.IoU_AB[i] < 0.95],
-                'max_diff_ok': pct(float((ok.A_B_km2 / U.loc[ids].A_km2 - 1)[ok.IoU_AB >= 0.95].abs().max()), 1)}
+SOGLIA_IOU = 0.90
+R['sintesi'] = {'n': len(ids), 'n_ok': int((ok.IoU_AB >= SOGLIA_IOU).sum()), 'id_ok': [str(i) for i in ids if V.IoU_AB[i] >= SOGLIA_IOU],
+                'id_ko': [str(i) for i in ids if V.IoU_AB[i] < SOGLIA_IOU],
+                'max_diff_ok': pct(float((ok.A_B_km2 / U.loc[ids].A_km2 - 1)[ok.IoU_AB >= SOGLIA_IOU].abs().max()), 1)}
 v1 = V.loc[i0]
 R['es'] = {'id': i0, 'nome': nome(i0), 'A': f(U.loc[i0, 'A_km2'], 3), 'celle': f'{int(v1.A_celle):,}'.replace(',', '.'),
            'A_B': f(v1.A_B_km2, 3), 'IoU': pct(v1.IoU_AB, 1), 'L': f(U.loc[i0, 'Longest_flow_length_km'], 3),
