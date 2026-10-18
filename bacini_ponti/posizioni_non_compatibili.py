@@ -169,7 +169,9 @@ def simbolo(nome, colore, forma='circle', dim='3.6'):
 
 
 def qml_categorie(cat_colori, forma='circle', dim='3.6', etichetta=True):
-    cats = ''.join(f'<category render="true" symbol="{k}" value="{v}" label="{v}"/>' for k, (v, _) in enumerate(cat_colori))
+    from xml.sax.saxutils import quoteattr
+    cats = ''.join(f'<category render="true" symbol="{k}" value={quoteattr(v)} label={quoteattr(v)}/>'
+                   for k, (v, _) in enumerate(cat_colori))
     syms = ''.join(simbolo(str(k), c, forma, dim) for k, (_, c) in enumerate(cat_colori))
     lab = '''<labeling type="simple"><settings calloutType="simple"><text-style fieldName="ID" fontSize="9" textColor="0,0,0,255">
 <text-buffer bufferDraw="1" bufferSize="0.8" bufferColor="255,255,255,255"/></text-style>
