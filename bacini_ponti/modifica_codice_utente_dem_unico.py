@@ -127,6 +127,14 @@ rep('with open("reticolo_idrografico.geojson", "w") as f:',
     f'with open(os.path.join(CARTELLA_PORZIONI, f"{{PORZIONE}}_reticolo_idrografico.geojson"), "w") as f:  {M}')
 rep('print(f"Reticolo salvato in reticolo_idrografico.geojson',
     'print(f"Reticolo salvato in {CARTELLA_PORZIONI}/{PORZIONE}_reticolo_idrografico.geojson')
+rep('''        print(f"Ponte {bridge_id}: bacino delineato ({int(np.sum(basin))} celle).")
+''', f'''        print(f"Ponte {{bridge_id}}: bacino delineato ({{int(np.sum(basin))}} celle).")
+        {M} controllo: un bacino che arriva al bordo della porzione puo' essere troncato
+        _b = np.asarray(basin)
+        if _b[:2].any() or _b[-2:].any() or _b[:, :2].any() or _b[:, -2:].any():
+            print(f"Ponte {{bridge_id}}: ATTENZIONE - il bacino arriva al bordo di {{PORZIONE}}: "
+                  f"possibile bacino troncato, allargare la porzione (xmin, ymin, xmax, ymax in {{input_csv}}).")
+''')
 rep('df = pd.read_csv(input_csv)\n', f'df = _ponti[["id", "X", "Y"]]  {M} solo i ponti della porzione\n')
 rep('    basin_int = basin.astype(np.uint8)\n',
     f'    basin_int = np.asarray(basin).astype(np.uint8)  {M} evita errore di casting con numpy 2\n')
