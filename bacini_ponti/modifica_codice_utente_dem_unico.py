@@ -15,7 +15,7 @@ rep('''Input attesi:
   - DEM in formato ASCII grid (dem_path), in CRS proiettato (metrico).''', f'''{M} DEM unico letto a porzioni.
 Lanciato senza argomenti, lo script elabora una porzione alla volta, ciascuna in un
 processo separato (memoria liberata tra una porzione e l'altra), poi riunisce i
-risultati in output_csv e bacini_afferenti.geojson. Le porzioni (colonne porzione,
+risultati in output_csv, bacini_afferenti.geojson e reticolo_idrografico.geojson. Le porzioni (colonne porzione,
 xmin, ymin, xmax, ymax del CSV) contengono per intero i bacini dei loro ponti.
 Una porzione gia' elaborata (file in porzioni/) viene saltata: il lancio si puo'
 interrompere e riprendere. Per una sola porzione: python pysheds_bridges_5m.py porzione_NN
@@ -66,6 +66,24 @@ if len(sys.argv) == 1:
     gj['features'] = sorted(feats, key=lambda ft: ft['properties']['ID'])
     with open("bacini_afferenti.geojson", "w") as f:
         json.dump(gj, f)
+    # reticolo unico: i rami delle porzioni vengono dissolti, cosi' i tratti comuni a porzioni
+    # sovrapposte compaiono una volta sola; la linea viene spezzata alle confluenze
+    import geopandas as gpd
+    import shapely
+    from shapely.geometry import shape
+    rami = []
+    for p in porzioni:
+        with open(os.path.join(CARTELLA_PORZIONI, f"{{p}}_reticolo_idrografico.geojson")) as f:
+            rami += [shape(ft['geometry']) for ft in json.load(f)['features']]
+    unito = shapely.line_merge(shapely.unary_union(rami))
+    ret = gpd.GeoDataFrame(geometry=[unito], crs=DEM_CRS).explode(index_parts=False).reset_index(drop=True)
+    ret['geometry'] = shapely.simplify(ret.geometry.values, 0.01)  # toglie solo i vertici allineati (1 cm)
+    ret = ret[~ret.geometry.is_empty & (ret.geometry.length > 0)].reset_index(drop=True)
+    ret.insert(0, 'id_ramo', range(1, len(ret) + 1))
+    ret['lung_m'] = ret.geometry.length.round(1)
+    ret.to_file("reticolo_idrografico.geojson", driver="GeoJSON")
+    print(f"Reticolo unico in reticolo_idrografico.geojson: {{len(ret)}} tratti, "
+          f"{{ret['lung_m'].sum() / 1000:.0f}} km (CRS: {{DEM_CRS}}).")
     print(f"Completato: {{len(tab)}} ponti in {{output_csv}}, bacini in bacini_afferenti.geojson.")
     sys.exit(0)
 
