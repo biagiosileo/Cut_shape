@@ -4,7 +4,7 @@ Regola: la sezione di chiusura deve stare dove il tracciato del ponte nel KML at
 Per ogni ponte si misura la distanza del punto di ponti.csv dal tracciato del ponte (KML abbinato per nome,
 altrimenti il tracciato usato nel controllo delle coordinate). Entro TOLL_M il punto resta com'e'. Oltre,
 il punto viene ricollocato sul tracciato, stesso DEM e stessa catena del codice (DEM unico inciso, D8, accumulo):
-  - tra le celle toccate dal tracciato con accumulo > 4000 (reticolo del codice) si prende quella con
+  - tra le celle entro TOLL_M dal tracciato con accumulo > 4000 (reticolo del codice) si prende quella con
     accumulo maggiore (il corso principale scavalcato dal ponte);
   - se il tracciato non tocca il reticolo del codice, si prende la cella toccata con accumulo maggiore
     (almeno MIN_CELLE) e si assegna al ponte una soglia di aggancio pari al 90% del suo accumulo
@@ -141,7 +141,7 @@ for chiave, (lim, ids) in gruppi.items():
     A, T = flusso(lim)
     for i in ids:
         t, _ = tracciato(i)
-        m = rasterize([(t.buffer(2.5), 1)], out_shape=A.shape, transform=T, all_touched=True).astype(bool)
+        m = rasterize([(t.buffer(TOLL_M), 1)], out_shape=A.shape, transform=T, all_touched=True).astype(bool)
         rr, cc = np.where(m & (A > ACC_THRESHOLD))
         soglia = None
         if len(rr) == 0:
