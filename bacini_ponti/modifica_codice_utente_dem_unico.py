@@ -135,7 +135,16 @@ rep('''        print(f"Ponte {bridge_id}: bacino delineato ({int(np.sum(basin))}
             print(f"Ponte {{bridge_id}}: ATTENZIONE - il bacino arriva al bordo di {{PORZIONE}}: "
                   f"possibile bacino troncato, allargare la porzione (xmin, ymin, xmax, ymax in {{input_csv}}).")
 ''')
-rep('df = pd.read_csv(input_csv)\n', f'df = _ponti[["id", "X", "Y"]]  {M} solo i ponti della porzione\n')
+rep('df = pd.read_csv(input_csv)\n', f'''df = _ponti[["id", "X", "Y"] + (["soglia"] if "soglia" in _ponti else [])]  {M} solo i ponti della porzione
+''')
+rep('        x_snap, y_snap = grid.snap_to_mask(acc > ACC_THRESHOLD, (x, y))\n',
+    f'''        {M} soglia per singolo ponte (colonna facoltativa "soglia" di ponti.csv, per i fossi piccoli)
+        _soglia = ACC_THRESHOLD
+        if "soglia" in row and pd.notna(row["soglia"]):
+            _soglia = int(row["soglia"])
+            print(f"Ponte {{bridge_id}}: soglia di aggancio ridotta a {{_soglia}} celle.")
+        x_snap, y_snap = grid.snap_to_mask(acc > _soglia, (x, y))
+''')
 rep('    basin_int = basin.astype(np.uint8)\n',
     f'    basin_int = np.asarray(basin).astype(np.uint8)  {M} evita errore di casting con numpy 2\n')
 rep('pd.DataFrame(results).to_csv(output_csv, index=False)\nprint(f"Elaborazione completata. File salvato: {output_csv}")',
