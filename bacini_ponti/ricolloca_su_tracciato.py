@@ -183,6 +183,6 @@ for chiave, (lim, ids) in gruppi.items():
         R.loc[i, 'Porzione nuova'] = P.loc[i, 'porzione']
         print(i, R.loc[i].to_dict(), flush=True)
     del A
-P.to_csv(os.path.join(out, 'ponti_tracciato_kml.csv'), index=False)
+P.reset_index().to_csv(os.path.join(out, 'ponti_tracciato_kml.csv'), index=False)
 R.reset_index().to_csv(os.path.join(out, 'ricollocazione_tracciato.csv'), index=False)
 print(R.Esito.value_counts())
