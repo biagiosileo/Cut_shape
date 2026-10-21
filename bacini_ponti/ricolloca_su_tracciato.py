@@ -6,11 +6,13 @@ altrimenti il tracciato usato nel controllo delle coordinate). Entro TOLL_M il p
 il punto viene ricollocato sul tracciato, stesso DEM e stessa catena del codice (DEM unico inciso, D8, accumulo):
   - tra le celle entro TOLL_M dal tracciato con accumulo > 4000 (reticolo del codice) si prende quella con
     accumulo maggiore (il corso principale scavalcato dal ponte);
-  - se il tracciato non tocca il reticolo del codice, si prende la cella toccata con accumulo maggiore
+  - se il tracciato non tocca il reticolo del codice e dista meno di DIST_FOSSO_M dal punto, il tracciato e'
+    considerato impreciso e il punto resta; se dista di piu', si prende la cella toccata con accumulo maggiore
     (almeno MIN_CELLE) e si assegna al ponte una soglia di aggancio pari al 90% del suo accumulo
     (colonna "soglia" di ponti.csv);
   - il punto e' il centro della cella spostato di 1,25 m verso l'angolo in alto a sinistra (snap_to_mask).
-Se il tracciato e' fuori dalla porzione del ponte, si crea una porzione nuova dall'ingombro del bacino stimato
+Se il punto sta sul tracciato KML di un altro ponte (nomi/progressive scambiati tra database e KML) resta.
+Se il tracciato o il bacino del corso attraversato escono dalla porzione del ponte, si crea una porzione nuova dall'ingombro del bacino stimato
 a 25 m (acc/fd sul DEM unico ricampionato al minimo 5x5) piu' MARGINE_M.
 L'area del database non entra nella scelta.
 
@@ -38,6 +40,7 @@ PASSO = {64: (-1, 0), 128: (-1, 1), 1: (0, 1), 2: (1, 1), 4: (1, 0), 8: (1, -1),
 ACC_THRESHOLD = 4000
 TOLL_M = 10.0
 MIN_CELLE = 50
+DIST_FOSSO_M = 50.0
 MARGINE_M = 1500.0
 OFFSET_M = 1.25
 C5 = 5.0
@@ -120,8 +123,13 @@ for i, p in P.iterrows():
     d = t.distance(Point(x, y))
     r = {'ID': i, 'Tracciato': fonte, 'Lunghezza tracciato (m)': round(t.length), 'Dist punto-tracciato (m)': round(d, 1),
          'Porzione prima': p.porzione}
+    altri = [j for j in P.index if j != i and kt.get(k.loc[j, 'KML_nome']) is not None
+             and kt[k.loc[j, 'KML_nome']].distance(Point(x, y)) <= TOLL_M]
     if d <= TOLL_M:
         r['Esito'] = 'sul tracciato: invariato'
+    elif altri:
+        r['Esito'] = (f'sul tracciato KML abbinato al ponte {altri[0]} (nomi/progressive scambiati tra database e '
+                      'KML): invariato')
     else:
         da_fare.append(i)
     righe.append(r)
@@ -133,10 +141,14 @@ for i in da_fare:
     t, _ = tracciato(i)
     p = P.loc[i]
     lim = [p.xmin, p.ymin, p.xmax, p.ymax]
+    l25 = porzione_da_25m(t)
     if not box(*lim).buffer(-200).contains(t):
-        gruppi.setdefault(('nuova', i), (porzione_da_25m(t), [i]))
-    else:
+        gruppi.setdefault(('nuova', i), (l25, [i]))
+    elif box(*lim).contains(box(*l25).buffer(-MARGINE_M + 500)):
         gruppi.setdefault(p.porzione, (lim, []))[1].append(i)
+    else:  # il bacino del corso sul tracciato esce dalla porzione: porzione allargata
+        gruppi.setdefault(('nuova', i), (allinea([min(lim[0], l25[0]), min(lim[1], l25[1]),
+                                                   max(lim[2], l25[2]), max(lim[3], l25[3])]), [i]))
 for chiave, (lim, ids) in gruppi.items():
     A, T = flusso(lim)
     for i in ids:
@@ -146,6 +158,10 @@ for chiave, (lim, ids) in gruppi.items():
         soglia = None
         if len(rr) == 0:
             rr, cc = np.where(m & (A >= MIN_CELLE))
+            if R.loc[i, 'Dist punto-tracciato (m)'] <= DIST_FOSSO_M:
+                R.loc[i, 'Esito'] = (f'il tracciato non tocca il reticolo ed e\' a meno di {DIST_FOSSO_M:.0f} m dal '
+                                     'punto: tracciato impreciso, invariato')
+                continue
             if len(rr) == 0:
                 R.loc[i, 'Esito'] = 'il tracciato non tocca nessun fosso: invariato'
                 continue
