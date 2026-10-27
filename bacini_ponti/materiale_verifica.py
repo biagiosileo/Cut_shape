@@ -152,9 +152,12 @@ def domanda(i):
     aff = d['Area affluente maggiore (km²)'] if pd.notna(d['Area affluente maggiore (km²)']) else 0
     if rel.startswith('stesso corso'):
         q = (f"Stesso corso, punto proposto {'a valle' if 'valle' in rel else 'a monte'} di {r.Dist_spostamento_m:.0f} m. ")
-        if aff > 0:
-            q += (f"Tra i due punti entra un affluente di {aff:g} km²: il ponte riceve quell'affluente? "
-                  "SI se l'affluente passa sotto il ponte o confluisce a monte; NO se confluisce a valle del ponte.")
+        if aff > 0 and 'valle' in rel:
+            q += (f"Tra i due punti entra un affluente di {aff:g} km², che il punto proposto include: il ponte riceve "
+                  "quell'affluente? SI se l'affluente passa sotto il ponte o confluisce a monte; NO se confluisce a valle.")
+        elif aff > 0:
+            q += (f"Tra i due punti entra un affluente di {aff:g} km², che il punto proposto esclude: SI se l'affluente "
+                  "confluisce a valle del ponte (il ponte non lo riceve); NO se passa sotto il ponte o confluisce a monte.")
         else:
             q += "Nessun affluente in mezzo: SI se il ponte e' su questo corso e il punto proposto e' nell'alveo scavalcato."
     else:
