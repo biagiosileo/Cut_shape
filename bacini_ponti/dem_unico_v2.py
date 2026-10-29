@@ -32,8 +32,9 @@ FASCIA_M = 2000.0
 
 src = rasterio.open(dem_path)
 prof = src.profile
-prof.update(BIGTIFF='YES')
+prof.update(BIGTIFF='IF_SAFER', predictor=2, zstd_level=22)
 dst = rasterio.open(out, 'w', **prof)
+dst.scales, dst.offsets = src.scales, src.offsets  # quote in cm con scala 0,01, come il DEM unico
 for r0 in range(0, src.height, 1024):
     w = Window(0, r0, src.width, min(1024, src.height - r0))
     dst.write(src.read(1, window=w), 1, window=w)
@@ -80,7 +81,7 @@ if tomb:
     for _, r in L.iterrows():
         w2 = from_bounds(*r.geometry.buffer(20).bounds, transform=src.transform).round_offsets().round_lengths()
         T2 = src.window_transform(w2)
-        a2 = dst.read(1, window=w2) if False else src.read(1, window=w2)
+        a2 = src.read(1, window=w2)
         m = rasterize([(r.geometry, 1)], out_shape=a2.shape, transform=T2, all_touched=True).astype(bool) & (a2 != src.nodata)
         a2[m] = a2[m].min() - int(BRUCIA_M * 100)
         dst.write(a2, 1, window=w2)
