@@ -35,7 +35,7 @@ FASCIA_M = 2000.0
 src = rasterio.open(dem_path)
 prof = src.profile
 prof.update(BIGTIFF='IF_SAFER', predictor=2, zstd_level=22)
-dst = rasterio.open(out, 'w', **prof)
+dst = rasterio.open(out, 'w+', **prof)
 dst.scales, dst.offsets = src.scales, src.offsets
 for r0 in range(0, src.height, 1024):
     w = Window(0, r0, src.width, min(1024, src.height - r0))
