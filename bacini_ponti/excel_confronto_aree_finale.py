@@ -84,6 +84,28 @@ for k in range(2, ult + 1):
         ca[f'{c}{k}'].number_format = '+0.0%;-0.0%;0.0%' if c == 'F' else '0.0%'
     for c in 'ABCDEFGHI':
         ca[f'{c}{k}'].border = bordo
+# colore fisso calcolato qui con le stesse soglie (visibile anche dove le formule non vengono ricalcolate,
+# es. anteprime e visualizzatori); la formattazione condizionale lo aggiorna se si cambiano le tolleranze
+ultima_col = 'Q' if NOTE is not None else 'I'
+CONTEGGI = {}
+for k in range(2, ult + 1):
+    a_db, a_c = ca[f'C{k}'].value, ca[f'D{k}'].value
+    if a_db is None or a_db == 0:
+        cl, fill = 'senza area DB', GRIGIO
+    else:
+        dp = abs(a_c / a_db - 1)
+        if dp <= 0.15:
+            cl, fill = 'compatibile', None
+        elif dp <= 0.25 or (abs(a_c - a_db) <= 0.1 and dp <= 0.5):
+            cl, fill = 'quasi compatibile', CELESTE
+        else:
+            cl, fill = 'non compatibile', GIALLO
+    CONTEGGI[cl] = CONTEGGI.get(cl, 0) + 1
+    if fill is not None:
+        for c in 'ABCDEFGHIJKLMNOPQ'[:'ABCDEFGHIJKLMNOPQ'.index(ultima_col) + 1]:
+            ca[f'{c}{k}'].fill = fill
+print('classi (calcolo Python):', CONTEGGI)
+wb.calculation.fullCalcOnLoad = True
 ca.conditional_formatting.add(f'A2:I{ult}', FormulaRule(formula=['$H2="quasi compatibile"'], fill=CELESTE))
 ca.conditional_formatting.add(f'A2:I{ult}', FormulaRule(formula=['$H2="non compatibile"'], fill=GIALLO))
 ca.conditional_formatting.add(f'A2:I{ult}', FormulaRule(formula=['$H2="senza area DB"'], fill=GRIGIO))
