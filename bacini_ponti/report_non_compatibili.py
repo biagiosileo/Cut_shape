@@ -102,7 +102,9 @@ for r_ in t.rows:
                 r.font.name = 'Times New Roman'
 for c in t.rows[0].cells:
     c.paragraphs[0].runs[0].bold = True
-for j, wd in enumerate([1.0, 3.6, 1.6, 1.8, 1.2, 2.4, 2.4, 2.6, 6.5, 4.4]):
+t.autofit = False
+for j, wd in enumerate([0.9, 3.2, 1.5, 1.6, 1.2, 2.2, 2.2, 2.6, 7.4, 4.9]):
+    t.columns[j].width = Cm(wd)
     for r_ in t.rows:
         r_.cells[j].width = Cm(wd)
 doc.add_paragraph()
