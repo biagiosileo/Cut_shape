@@ -6,7 +6,9 @@ Excel di confronto tra area calcolata dal codice e SUPERFICIE BACINO del databas
 Classi: compatibile |diff %| <= 15%; quasi compatibile |diff %| <= 25%, oppure bacino piccolo con
 |diff| <= 0,1 km² (soglia del reticolo) e |diff %| <= 50%; non compatibile altrimenti.
 
-Uso: python excel_confronto_aree_finale.py <parametri_morfologici.csv> <Database.xlsx> <out.xlsx>
+Uso: python excel_confronto_aree_finale.py <parametri_morfologici.csv> <Database.xlsx> <out.xlsx> [--note note.csv]
+note.csv (facoltativo): ID, Area_DB_corretta, Correzione, Fonte, A_rel, AE_rel, S_rel. Se Area_DB_corretta e'
+indicata, il confronto usa quel valore e l'area originale del database resta nella colonna dedicata.
 """
 import sys
 
@@ -16,6 +18,7 @@ from openpyxl.formatting.rule import FormulaRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 pcsv, dbx, out = sys.argv[1:4]
+NOTE = pd.read_csv(sys.argv[sys.argv.index('--note') + 1]).set_index('ID') if '--note' in sys.argv else None
 U = pd.read_csv(pcsv)
 U['ID'] = U.ID.astype(int)
 assert U.ID.tolist() == list(range(1, 213)), 'ID non 1-212 in ordine'
@@ -43,12 +46,27 @@ n = len(U)
 ult = n + 1
 intest = ['ID', 'Nome opera', 'Area database (km²)', 'Area calcolata (km²)', 'Differenza (km²)',
           'Differenza %', 'Differenza % assoluta', 'Classe', 'Criterio']
+if NOTE is not None:
+    intest += ['Area DB originale (km²)', 'Correzione / stato', 'Fonte', 'Area relazione (km²)',
+               'Quota media relazione (m)', 'Pendenza media relazione (%)', 'Quota media calcolata (m)',
+               'Pendenza media calcolata (%)']
 ca.append(intest)
 for _, r in U.iterrows():
     i = r.ID
     nome = str(db.loc[i, 'Nome opera']).strip() if i in db.index else ''
     a_db = adb.get(i)
-    ca.append([i, '' if nome in ('-', 'nan') else nome, None if pd.isna(a_db) else float(a_db), float(r.A_km2)])
+    riga = [i, '' if nome in ('-', 'nan') else nome, None if pd.isna(a_db) else float(a_db), float(r.A_km2)]
+    if NOTE is not None:
+        riga += [None] * 5
+        if i in NOTE.index:
+            n = NOTE.loc[i]
+            orig = None
+            if pd.notna(n.Area_DB_corretta):
+                orig, riga[2] = riga[2], float(n.Area_DB_corretta)
+            v = lambda c: None if pd.isna(n[c]) else n[c]
+            riga += [orig, v('Correzione'), v('Fonte'), v('A_rel'), v('AE_rel'), v('S_rel'),
+                     round(float(r.AE_m), 1), round(100 * float(r.S), 1)]
+    ca.append(riga)
 for k in range(2, ult + 1):
     ca[f'E{k}'] = f'=IF(C{k}="","",D{k}-C{k})'
     ca[f'F{k}'] = f'=IF(C{k}="","",D{k}/C{k}-1)'
@@ -69,10 +87,17 @@ for k in range(2, ult + 1):
 ca.conditional_formatting.add(f'A2:I{ult}', FormulaRule(formula=['$H2="quasi compatibile"'], fill=CELESTE))
 ca.conditional_formatting.add(f'A2:I{ult}', FormulaRule(formula=['$H2="non compatibile"'], fill=GIALLO))
 ca.conditional_formatting.add(f'A2:I{ult}', FormulaRule(formula=['$H2="senza area DB"'], fill=GRIGIO))
-for c, w in zip('ABCDEFGHI', [6, 44, 14, 14, 14, 13, 13, 18, 44]):
+for c, w in zip('ABCDEFGHIJKLMNOPQ', [6, 44, 14, 14, 14, 13, 13, 18, 44, 12, 60, 24, 11, 11, 11, 11, 11]):
     ca.column_dimensions[c].width = w
+if NOTE is not None:
+    for k in range(2, ult + 1):
+        ca[f'K{k}'].alignment = Alignment(wrap_text=True, vertical='top')
+        for c in 'JLMNOPQ':
+            ca[f'{c}{k}'].border = bordo
+        for c in 'JKL':
+            ca[f'{c}{k}'].border = bordo
 ca.freeze_panes = 'C2'
-ca.auto_filter.ref = f'A1:I{ult}'
+ca.auto_filter.ref = f'A1:{"Q" if NOTE is not None else "I"}{ult}'
 
 # --- foglio 1: statistiche ---
 st['A1'] = 'Confronto aree: area calcolata dal codice e SUPERFICIE BACINO del database'

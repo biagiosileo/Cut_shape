@@ -1,0 +1,21 @@
+ID,Area_DB_corretta,Correzione,Fonte,A_rel,AE_rel,S_rel
+6,,DEM esteso all'alto Agri (Copernicus GLO-30) e porzione nuova,DEM unico v3,,,
+105,,tombino nel rilevato stradale e sezione sul taglio,DEM unico v3,,,
+21,13.33,area DB corretta da 1333 a 13.33 km2 (errore di trascrizione),relazione di ispezione,1333,325,25
+111,,sezione spostata sul torrente (81 m),relazione di ispezione,14.50,61.00,6.19
+196,,sezione spostata sull'affluente (130 m),relazione di ispezione,0.83,296,21
+107,,sezione sul ramo piccolo della confluenza (32 m),relazione di ispezione,0.72,91.06,18.86
+108,,sezione sul ramo accanto (38 m),relazione di ispezione,0.27,63.36,11.34
+109,,sezione a 18 m dal ponte,relazione di ispezione,0.31,35.33,8.22
+198,,tombino nel rilevato circa 600 m a monte,relazione di ispezione + breaching,0.61,285,17
+113,,buco del DEM riempito (tavole 5 m e Copernicus) e porzione nuova,relazione di ispezione + DEM unico v3,8.49,17.45,3.85
+155,,buco del DEM riempito (tavole 5 m e Copernicus) e porzione nuova,relazione di ispezione + DEM unico v3,21.17,74.89,5.328
+13,,da risolvere: in pianura il Toccacielo scorre in un canale a circa 300 m (serve il reticolo dei canali),relazione di ispezione,18.06,182.12,16.78
+154,,da risolvere: come il 13 (stessa relazione del Toccacielo),relazione di ispezione,18.06,182.12,16.78
+19,,da chiarire: il bacino della relazione si chiude a circa 925 m dal ponte,relazione di ispezione,0.63,155.40,28.34
+117,,da chiarire: il bacino della relazione si chiude a circa 460 m dal ponte,relazione di ispezione,0.38,181.13,5.82
+118,,da chiarire: il bacino della relazione si chiude a circa 900 m dal ponte,relazione di ispezione,0.45,163.74,5.39
+58,,da chiarire: nessuna sezione entro 1 km riproduce la relazione,relazione di ispezione,2.63,260.45,32.26
+164,,da chiarire: il ponte scavalca l'Iesce; i dati della relazione non corrispondono,relazione di ispezione,0.75,218,26
+174,,da chiarire: nessuna sezione entro 2 km riproduce la relazione,relazione di ispezione,6.83,196,8
+190,,da chiarire: quota e pendenza coincidono con il bacino calcolato (possibile 2.167 invece di 21.67),relazione di ispezione,21.67,252,19
