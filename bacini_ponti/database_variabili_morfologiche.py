@@ -1,14 +1,12 @@
 """
 Database finale con le variabili morfologiche calcolate dal codice (copia nuova: il database originale non cambia).
 
-Le colonne nuove sono aggiunte in fondo al foglio, dopo l'ultima colonna del database, così le formule e i
-formati esistenti (AL-AN, colori delle classi CdA, ecc.) restano invariati. Nessun doppione:
-  - SUPERFICIE BACINO e 'pendenza media tratto %' del database restano come sono; accanto ai valori calcolati
-    si riportano solo le differenze (la pendenza del database corrisponde alla pendenza media di bacino, che il
-    codice calcola in modo diverso: per questo la si confronta e non la si sostituisce);
-  - non si ripetono le coordinate del database: si riportano solo quelle della sezione di calcolo.
+Le colonne nuove (solo i parametri calcolati dal codice python, nessun confronto) sono aggiunte in fondo al
+foglio, dopo l'ultima colonna del database, così le formule e i formati esistenti (AL-AN, colori delle classi
+CdA, ecc.) restano invariati. SUPERFICIE BACINO e 'pendenza media tratto %' del database restano come sono.
 Colori delle righe nelle colonne nuove: quasi compatibili celeste, non compatibili giallo, senza area DB grigio
 (stesse classi e soglie dell'Excel di confronto aree; aree DB corrette per i refusi dei ponti 21 e 190).
+Secondo foglio 'Legenda': significato dei colori e ponti di ciascuna classe.
 
 Uso: python database_variabili_morfologiche.py <Database.xlsx> <parametri_morfologici.csv> <note.csv> <out.xlsx>
 """
@@ -17,7 +15,7 @@ from copy import copy
 
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import Alignment, Border, PatternFill, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 dbx, pcsv, ncsv, out = sys.argv[1:5]
@@ -46,13 +44,7 @@ assert sorted(riga_id) == list(range(1, 213)), 'ID del database non 1-212'
 pc = lambda c: (lambda p: round(100 * p[c], 2))
 NUOVE = [
     ('Area bacino calcolata (km2)', lambda p: p.A_km2, '0.000'),
-    ('Area DB usata nel confronto (km2)', None, '0.000'),
-    ('Differenza area calcolata - DB (km2)', None, '+0.000;-0.000;0.000'),
-    ('Differenza area %', None, '+0.0%;-0.0%;0.0%'),
-    ('Classe compatibilita\' area', None, None),
-    ('Note confronto area', None, None),
     ('Pendenza media bacino calcolata %', pc('S'), '0.00'),
-    ('Differenza pendenza calcolata - DB (punti %)', None, '+0.00;-0.00;0.00'),
     ('Quota media bacino (m s.l.m.)', lambda p: p.AE_m, '0.0'),
     ('Rilievo bacino (m)', lambda p: p.Relief_m, '0.0'),
     ('Lunghezza percorso di flusso piu\' lungo (km)', lambda p: p.Longest_flow_length_km, '0.000'),
@@ -79,25 +71,20 @@ gia = [h for h, _, _ in NUOVE if h in COL]
 assert not gia, f'colonne gia\' presenti nel database: {gia}'
 
 intest = ws.cell(1, ultima)
-conteggi = {}
 for j, (h, f, fmt) in enumerate(NUOVE, start=ultima + 1):
     c = ws.cell(1, j, h)
     c.font, c.fill, c.alignment, c.border = copy(intest.font), copy(intest.fill), copy(intest.alignment), copy(intest.border)
     c.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
     ws.column_dimensions[get_column_letter(j)].width = 16
-ws.column_dimensions[get_column_letter(ultima + 6)].width = 50
-ws.column_dimensions[get_column_letter(ultima + 27)].width = 26
-
+ws.column_dimensions[get_column_letter(ultima + len(NUOVE) - 1)].width = 26
+CLASSI = {}
 for i, r in riga_id.items():
     p = P.loc[i]
     a_db = pd.to_numeric(ws.cell(r, c_area).value, errors='coerce')
-    nota = ''
     if i in N.index and pd.notna(N.loc[i, 'Area_DB_corretta']):
-        a_db, nota = float(N.loc[i, 'Area_DB_corretta']), N.loc[i, 'Correzione']
-    elif i in N.index and str(N.loc[i, 'Correzione']).startswith('da '):
-        nota = N.loc[i, 'Correzione']
+        a_db = float(N.loc[i, 'Area_DB_corretta'])
     if pd.isna(a_db) or a_db == 0:
-        classe, fill, dA, dP, a_db = 'senza area DB', GRIGIO, None, None, None
+        classe, fill = 'senza area DB', GRIGIO
     else:
         dA, dP = p.A_km2 - a_db, p.A_km2 / a_db - 1
         if abs(dP) <= 0.15:
@@ -106,14 +93,9 @@ for i, r in riga_id.items():
             classe, fill = 'quasi compatibile', CELESTE
         else:
             classe, fill = 'non compatibile', GIALLO
-    conteggi[classe] = conteggi.get(classe, 0) + 1
-    s_db = pd.to_numeric(ws.cell(r, c_pend).value, errors='coerce')
-    calc = {'Area DB usata nel confronto (km2)': a_db, 'Differenza area calcolata - DB (km2)': dA,
-            'Differenza area %': dP, 'Classe compatibilita\' area': classe, 'Note confronto area': nota or None,
-            'Differenza pendenza calcolata - DB (punti %)':
-                None if pd.isna(s_db) else round(100 * p.S - s_db, 2)}
+    CLASSI.setdefault(classe, []).append(i)
     for j, (h, f, fmt) in enumerate(NUOVE, start=ultima + 1):
-        v = f(p) if f is not None else calc[h]
+        v = f(p)
         if isinstance(v, float) and pd.isna(v):
             v = None
         c = ws.cell(r, j, v)
@@ -122,8 +104,36 @@ for i, r in riga_id.items():
         c.border = bordo
         if fill is not None:
             c.fill = fill
-        if h == 'Note confronto area':
-            c.alignment = Alignment(wrap_text=True, vertical='top')
+
+# ---- foglio Legenda ----
+lg = wb.create_sheet('Legenda')
+lg['A1'] = f'Colori delle colonne {get_column_letter(ultima + 1)}-{get_column_letter(ultima + len(NUOVE))} (parametri calcolati dal codice python)'
+lg['A1'].font = Font(bold=True, size=12)
+lg.append([])
+lg.append(['Colore', 'Classe', 'Criterio (area calcolata rispetto a SUPERFICIE BACINO)', 'N. ponti', 'ID'])
+for c in lg[3]:
+    c.font = Font(bold=True)
+    c.border = bordo
+voci = [(None, 'compatibile', '|differenza %| <= 15%'),
+        (CELESTE, 'quasi compatibile', '|differenza %| <= 25%, oppure |differenza| <= 0,1 km2 e |differenza %| <= 50%'),
+        (GIALLO, 'non compatibile', 'oltre le soglie precedenti'),
+        (GRIGIO, 'senza area DB', 'SUPERFICIE BACINO assente nel database')]
+for fill, cl, crit in voci:
+    ids = CLASSI.get(cl, [])
+    lg.append(['bianco' if fill is None else {'BDD7EE': 'celeste', 'FFF2CC': 'giallo', 'D9D9D9': 'grigio'}[fill.fgColor.rgb[-6:]],
+               cl, crit, len(ids), 'tutti gli altri' if cl == 'compatibile' else ', '.join(map(str, ids))])
+    for c in lg[lg.max_row]:
+        c.border = bordo
+        c.alignment = Alignment(wrap_text=True, vertical='top')
+        if fill is not None:
+            c.fill = fill
+lg.append([])
+lg.append(['Note: per i ponti 21 e 190 la classe usa l\'area del database corretta per il refuso (13,33 e 2,167 km2); '
+           'la colonna SUPERFICIE BACINO non e\' modificata.'])
+lg.append(['Pendenze in % (il codice le calcola in m/m). La colonna "pendenza media tratto %" del database '
+           'corrisponde alla pendenza media di bacino, non a quella di tratto.'])
+for col, w in zip('ABCDE', [10, 18, 60, 9, 70]):
+    lg.column_dimensions[col].width = w
 wb.save(out)
-print('classi:', conteggi)
+print('classi:', {k: len(v) for k, v in CLASSI.items()})
 print(f'colonne aggiunte: {get_column_letter(ultima + 1)}-{get_column_letter(ultima + len(NUOVE))} ({len(NUOVE)})')
