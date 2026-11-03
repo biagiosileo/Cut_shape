@@ -55,7 +55,7 @@ DIAG = {
 doc = Document()
 sec = doc.sections[0]
 sec.orientation = WD_ORIENT.LANDSCAPE
-sec.page_width, sec.page_height = sec.page_height, sec.page_width
+sec.page_width, sec.page_height = Cm(29.7), Cm(21.0)  # A4 orizzontale
 for m in ('left_margin', 'right_margin', 'top_margin', 'bottom_margin'):
     setattr(sec, m, Cm(1.8))
 st = doc.styles['Normal']
