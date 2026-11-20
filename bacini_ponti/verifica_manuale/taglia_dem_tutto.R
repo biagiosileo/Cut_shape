@@ -14,7 +14,7 @@ library(terra)
 dem_path <- "C:/Users/ladya/Downloads/dem5m_unico_v4.tif"
 out_dir  <- "C:/Users/ladya/Downloads/tessere_dem"
 blocco   <- 8000   # celle per lato del blocco iniziale
-limite   <- 29     # MB
+limite   <- 29     # milioni di byte (sotto i 30 MB comunque si contino: 29 000 000 byte = 27.7 MiB)
 
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 r <- rast(dem_path)
@@ -36,7 +36,7 @@ taglia <- function(c0, r0, nc, nr) {
   f <- file.path(out_dir, nome)
   writeRaster(round(z * 100), f, overwrite = TRUE, datatype = "INT4S", NAflag = -999999,
               gdal = c("COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9", "TILED=YES"))
-  mb <- file.size(f) / 1024^2
+  mb <- file.size(f) / 1e6   # milioni di byte
   if (mb > limite) {
     # troppo grande: divido in 4 sempre su celle intere
     file.remove(f)
@@ -61,5 +61,7 @@ for (r0 in seq(0, NR - 1, by = blocco)) {
 }
 
 write.csv(elenco, file.path(out_dir, "elenco_tessere.csv"), row.names = FALSE)
-cat("\nFatto:", nrow(elenco), "tessere,", round(sum(elenco$MB), 1), "MB in totale.\n")
+cat("\nFatto:", nrow(elenco), "tessere,", round(sum(elenco$MB), 1), "MB in totale; la piu' grande",
+    max(elenco$MB), "MB (limite", limite, ").\n")
+if (any(elenco$MB > limite)) cat("ATTENZIONE: ci sono file oltre il limite\n")
 cat("Caricare tutti i file della cartella", out_dir, "(anche elenco_tessere.csv)\n")
