@@ -38,6 +38,21 @@ P = pd.read_csv(ponti).set_index('id')
 to_utm = Transformer.from_crs('EPSG:4326', 'EPSG:32633', always_xy=True)
 to_geo = Transformer.from_crs('EPSG:32633', 'EPSG:4326', always_xy=True)
 
+X0, Y0, CELLA = 557074.00012207, 4541648.3480835, 5.0  # griglia del DEM a 5 m
+
+
+def angoli(geo):
+    """Angoli di cella che stanno sulla linea del reticolo. I tratti del reticolo sono semplificati (vertici anche a
+    decine di metri): l'incrocio va cercato su tutti gli angoli di cella attraversati, non solo sui vertici."""
+    d = np.array(geo.segmentize(0.5).coords)
+    gx, gy = np.round((d[:, 0] - X0) / CELLA), np.round((d[:, 1] - Y0) / CELLA)
+    cx, cy = X0 + gx * CELLA, Y0 + gy * CELLA
+    ok = np.hypot(d[:, 0] - cx, d[:, 1] - cy) < 0.3
+    c = np.unique(np.column_stack([cx[ok], cy[ok]]), axis=0)
+    c = np.array([v for v in c if geo.distance(Point(v)) < 0.01]) if len(c) else c
+    return c if len(c) else np.array(geo.coords)
+
+
 righe, punti, tracc = [], [], []
 for i in P.index:
     x, y = to_utm.transform(P.X[i], P.Y[i])
@@ -52,7 +67,7 @@ for i in P.index:
     vert = []
     for toll in (TOLL_M, TOLL_LARGA_M):  # se il tracciato non tocca il reticolo entro 15 m, si allarga a 50 m
         for geo in R.geometry.iloc[list(sidx.query(t.buffer(toll), predicate='intersects'))]:
-            c = np.array(geo.coords)
+            c = angoli(geo)
             d = np.array([t.distance(Point(v)) for v in c])
             if d.min() <= toll:
                 vert.append((tuple(c[d.argmin()]), float(d.min())))
