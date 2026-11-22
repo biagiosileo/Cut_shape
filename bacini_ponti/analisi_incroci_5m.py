@@ -78,10 +78,10 @@ for i in sorted(T.index):
         esito = 'il tracciato non incrocia il reticolo a 0.1 km2'
     elif piu_grandi:
         esito = 'sotto il ponte passa un\'asta piu\' grande di quella usata'
+    elif not usata:
+        esito = 'l\'asta usata non e\' tra gli incroci del tracciato (solo aste piu\' piccole)'
     elif piu_piccole:
         esito = 'sotto il ponte passa anche un\'asta piu\' piccola (usata la principale)'
-    elif not usata:
-        esito = 'l\'asta sul tracciato ha area diversa da quella usata'
     else:
         esito = 'una sola asta sotto il ponte, quella usata'
     r['Esito'] = esito
